@@ -27,6 +27,8 @@ module hazard_unit
 //------------------------------------------------------------------------------
 
 	wire wstall_lw;
+	wire waux1;
+	wire waux2;
 
 	// ---------------
 	// control hazards
@@ -39,7 +41,10 @@ module hazard_unit
 	// data hazards
 
 	// load word stalls
-	assign wstall_lw = iresult_src_b0_exect & ((irs1_decod == ird_exect) | (irs2_decod == ird_exect));
+	assign waux1 = (irs1_decod == ird_exect);
+	assign waux2 = (irs2_decod == ird_exect);
+	assign wstall_lw = iresult_src_b0_exect & (waux1 | waux2);
+
 	assign ostall_fetch = wstall_lw;
 	assign ostall_decod = wstall_lw;
 
