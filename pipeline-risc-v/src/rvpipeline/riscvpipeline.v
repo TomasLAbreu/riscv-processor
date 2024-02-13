@@ -1,173 +1,169 @@
-module riscvpipeline (
-	clk,
-	reset,
-
-	PCF,
-	InstrF,
-	InstrM,
-	MemWriteM,
-	ALUResultM, // ALUresult signal
-	WriteDataM,
-	ReadDataM
+//------------------------------------------------------------------------------
+module riscvpipeline
+//------------------------------------------------------------------------------
+#(
+  parameter MP_DATA_WIDTH = 32
+)
+(
+  input wire          iclk,
+  input wire          irst,
+  output wire [31:0]  PCF,
+  input wire  [31:0]  InstrF,
+  output wire [1:0]   InstrM,
+  output wire         MemWriteM,
+  output wire [MP_DATA_WIDTH-1 : 0] ALUResultM,
+  output wire [MP_DATA_WIDTH-1 : 0] WriteDataM,
+  input wire  [MP_DATA_WIDTH-1 : 0] ReadDataM
 );
-	input wire clk;
-	input wire reset;
+//------------------------------------------------------------------------------
 
-	output wire [31:0] PCF;
-	input wire [31:0] InstrF;
-	output wire [1:0] InstrM;
-	output wire MemWriteM;
-	output wire [31:0] ALUResultM;
-	output wire [31:0] WriteDataM;
-	input wire [31:0] ReadDataM;
-	
-	// ------ controler outputs
-	wire [2:0] ResultSrcW;
-	wire ALUSrcE;
+  // ------ controler outputs
+  wire [2:0] ResultSrcW;
+  wire ALUSrcE;
 
-	wire RegWriteW;
-	wire RegWriteM;
+  wire RegWriteW;
+  wire RegWriteM;
 
-	wire PCResultSrcE;
-	wire [2:0] ImmSrcD;
-	wire [3:0] ALUControlE;
-	wire ResultSrcb0E;
-	
-	// ------ datapath outputs	
-	wire [4:0] Rs1D;
-	wire [4:0] Rs2D;
-	wire [4:0] Rs1E;
-	wire [4:0] Rs2E;
-	wire [4:0] RdE;
-	wire PCSrcE;
-	
-	wire [4:0] RdM;
-	wire [4:0] RdW;
+  wire PCResultSrcE;
+  wire [2:0] ImmSrcD;
+  wire [3:0] ALUControlE;
+  wire ResultSrcb0E;
 
-	wire [31:0] InstrD;
-	// ALU flags
-	wire ZeroE;
-	wire OverflowE;
-	wire CarryE;
-	wire NegativeE;
+  // ------ datapath outputs
+  wire [4:0] Rs1D;
+  wire [4:0] Rs2D;
+  wire [4:0] Rs1E;
+  wire [4:0] Rs2E;
+  wire [4:0] RdE;
+  wire PCSrcE;
 
-	// ------ hazard unit flags
-	wire [1:0] ForwardAE;
-	wire [1:0] ForwardBE;
-	wire StallF;
-	wire StallD;
-	wire FlushD;
-	wire FlushE;
+  wire [4:0] RdM;
+  wire [4:0] RdW;
 
-	wire [6:0] opD;
-	wire [2:0] funct3D;
-	wire funct7b5D;
+  wire [31:0] InstrD;
+  // ALU flags
+  wire ZeroE;
+  wire OverflowE;
+  wire CarryE;
+  wire NegativeE;
 
-	// ============================================================================
-	// riscv pipeline processor
-	// ============================================================================
-	
-	assign opD = InstrD[6:0];
-	assign funct3D = InstrD[14:12];
-	assign funct7b5D = InstrD[30];
+  // ------ hazard unit flags
+  wire [1:0] ForwardAE;
+  wire [1:0] ForwardBE;
+  wire StallF;
+  wire StallD;
+  wire FlushD;
+  wire FlushE;
 
-	controller c(
-		clk,
-		reset,
-		FlushE,
+  wire [6:0] opD;
+  wire [2:0] funct3D;
+  wire funct7b5D;
 
-		opD,
-		funct3D,
-		funct7b5D,
+  // ============================================================================
+  // riscv pipeline processor
+  // ============================================================================
 
-		// ALU flags
-		ZeroE,
-		OverflowE,
-		CarryE,
-		NegativeE,
-		
-		ResultSrcW,
-		MemWriteM,
-		PCSrcE,
-		ALUSrcE,
+  assign opD = InstrD[6:0];
+  assign funct3D = InstrD[14:12];
+  assign funct7b5D = InstrD[30];
 
-		RegWriteM,
-		RegWriteW,
+  controller c(
+    iclk,
+    irst,
+    FlushE,
+
+    opD,
+    funct3D,
+    funct7b5D,
+
+    // ALU flags
+    ZeroE,
+    OverflowE,
+    CarryE,
+    NegativeE,
+
+    ResultSrcW,
+    MemWriteM,
+    PCSrcE,
+    ALUSrcE,
+
+    RegWriteM,
+    RegWriteW,
 
         PCResultSrcE,
-		ImmSrcD,
-		ALUControlE,
-		ResultSrcb0E
-	);
-	
-	datapath dp(
-		// inputs
-		clk,
-		reset,
+    ImmSrcD,
+    ALUControlE,
+    ResultSrcb0E
+  );
 
-		ResultSrcW,
-		PCSrcE,
-		ALUSrcE,
-		RegWriteW,
-		ImmSrcD,
-		ALUControlE,
-		PCResultSrcE,
+  datapath dp(
+    // inputs
+    iclk,
+    irst,
 
-		// hazard unit flags
-		ForwardAE,
-		ForwardBE,
-		StallF,
-		StallD,
-		FlushD,
-		FlushE,
+    ResultSrcW,
+    PCSrcE,
+    ALUSrcE,
+    RegWriteW,
+    ImmSrcD,
+    ALUControlE,
+    PCResultSrcE,
 
-		// outputs
-		// hazard unit inputs
-		Rs1D,
-		Rs2D,
-		Rs1E,
-		Rs2E,
-		RdE,
+    // hazard unit flags
+    ForwardAE,
+    ForwardBE,
+    StallF,
+    StallD,
+    FlushD,
+    FlushE,
 
-		RdM,
-		RdW,
+    // outputs
+    // hazard unit inputs
+    Rs1D,
+    Rs2D,
+    Rs1E,
+    Rs2E,
+    RdE,
 
-		// ALU flags
-		ZeroE,
-		OverflowE,
-		CarryE,
-		NegativeE,
+    RdM,
+    RdW,
 
-		PCF,
-		InstrF,
-		InstrD,
-		ALUResultM,
-		WriteDataM,
-		ReadDataM,
-		InstrM
-	);
+    // ALU flags
+    ZeroE,
+    OverflowE,
+    CarryE,
+    NegativeE,
 
-	hazardUnit hu(
-		Rs1D,
-		Rs2D,
+    PCF,
+    InstrF,
+    InstrD,
+    ALUResultM,
+    WriteDataM,
+    ReadDataM,
+    InstrM
+  );
 
-		Rs1E,
-		Rs2E,
-		RdE,
-		PCSrcE,
-		ResultSrcb0E,
+  hazardUnit hu(
+    Rs1D,
+    Rs2D,
 
-		RdM,
-		RdW,
-		RegWriteM,
-		RegWriteW,
+    Rs1E,
+    Rs2E,
+    RdE,
+    PCSrcE,
+    ResultSrcb0E,
 
-		// outputs
-		ForwardAE,
-		ForwardBE,
-		StallF,
-		StallD,
-		FlushD,
-		FlushE
-	);
+    RdM,
+    RdW,
+    RegWriteM,
+    RegWriteW,
+
+    // outputs
+    ForwardAE,
+    ForwardBE,
+    StallF,
+    StallD,
+    FlushD,
+    FlushE
+  );
 endmodule

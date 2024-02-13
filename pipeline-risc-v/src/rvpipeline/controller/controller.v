@@ -1,173 +1,144 @@
 module controller (
-	clk,
-	reset,
-	FlushE,
+  input             iclk,
+  input             irst,
 
-	opD,
-	funct3D,
-	funct7b5D,
-	
-	ZeroE,
-	OverflowE,
-	CarryE,
-	NegativeE,
+  input             FlushE,
+  input wire  [6:0] opD,
+  input wire  [2:0] funct3D,
+  input wire        funct7b5D,
 
-	// outputs
-	ResultSrcW,
-	MemWriteM,
-	PCSrcE,
-	ALUSrcE,
+  // ALU flags
+  input wire        ZeroE,
+  input wire        OverflowE,
+  input wire        CarryE,
+  input wire        NegativeE,
+  output wire [2:0] ResultSrcW,
 
-	RegWriteM,
-	RegWriteW,
-
-    PCResultSrcE,
-	ImmSrcD,
-	ALUControlE,
-	ResultSrcb0E
+  output wire       MemWriteM,
+  output wire       PCSrcE,
+  output wire       ALUSrcE,
+  output wire       RegWriteW,
+  output wire       RegWriteM,
+  output wire       PCResultSrcE,
+  output wire [2:0] ImmSrcD,
+  output wire [3:0] ALUControlE,
+  output wire       ResultSrcb0E
 );
-	input clk;
-	input reset;
-	input FlushE;
 
-	input wire [6:0] opD;
-	input wire [2:0] funct3D;
-	input wire funct7b5D;
+  wire [1:0] ALUOpD;
 
-	// ALU flags
-	input wire ZeroE;
-	input wire OverflowE;
-	input wire CarryE;
-	input wire NegativeE;
+  // ============================================================================
+  // pipeline Decode - Execute
+  // ============================================================================
+  // inputs
+  wire RegWriteD;
+  wire [2:0] ResultSrcD;
+  wire MemWriteD;
+  wire [3:0] ALUControlD;
+  wire ALUSrcD;
+  wire PCResultSrcD;
 
-	output wire [2:0] ResultSrcW;
-	output wire MemWriteM;
+  // outputs
+  wire [6:0] opE;
+  wire [2:0] funct3E;
+  wire RegWriteE;
+  wire [2:0] ResultSrcE;
+  wire MemWriteE;
 
-	output wire PCSrcE;
-	output wire ALUSrcE;
+  // ============================================================================
+  // pipeline Execute - Memory
+  // ============================================================================
+  // outputs
+  wire [2:0] ResultSrcM;
 
-	output wire RegWriteW;
-	output wire RegWriteM;
+  // ============================================================================
+  // pipelines instantiation
+  // ============================================================================
 
-    output wire PCResultSrcE;
-	output wire [2:0] ImmSrcD;
-	output wire [3:0] ALUControlE;
-	output wire ResultSrcb0E;
-	
-	wire [1:0] ALUOpD;
+  pipelineDE_ctrl pipeDE(
+    iclk,
+    irst | FlushE,
 
-	// ============================================================================
-	// pipeline Decode - Execute
-	// ============================================================================
-	// inputs
-	wire RegWriteD;
-	wire [2:0] ResultSrcD;
-	wire MemWriteD;
-	wire [3:0] ALUControlD;
-	wire ALUSrcD;
-	wire PCResultSrcD;
+    opD,
+    funct3D,
+    RegWriteD,
+    ResultSrcD,
+    MemWriteD,
+    ALUControlD,
+    ALUSrcD,
+    PCResultSrcD,
 
-	// outputs
-	wire [6:0] opE;
-	wire [2:0] funct3E;
-	wire RegWriteE;
-	wire [2:0] ResultSrcE;
-	wire MemWriteE;
+    opE,
+    funct3E,
+    RegWriteE,
+    ResultSrcE,
+    MemWriteE,
+    ALUControlE,
+    ALUSrcE,
+    PCResultSrcE
+  );
 
-	// ============================================================================
-	// pipeline Execute - Memory
-	// ============================================================================
-	// outputs
-	wire [2:0] ResultSrcM;
+  pipelineEM_ctrl pipeEM(
+    iclk,
+    irst,
 
-	// ============================================================================
-	// pipelines instantiation
-	// ============================================================================
-	
-	pipelineDE_ctrl pipeDE(
-		clk,
-		reset | FlushE,
-		
-		opD,
-		funct3D,
-		RegWriteD,
-		ResultSrcD,
-		MemWriteD,
-		ALUControlD,
-		ALUSrcD,
-		PCResultSrcD,
+    RegWriteE,
+    ResultSrcE,
+    MemWriteE,
 
-		opE,
-		funct3E,
-		RegWriteE,
-		ResultSrcE,
-		MemWriteE,
-		ALUControlE,
-		ALUSrcE,
-		PCResultSrcE
-	);
+    RegWriteM,
+    ResultSrcM,
+    MemWriteM
+  );
 
-	pipelineEM_ctrl pipeEM(
-		clk,
-		reset,
-		
-		RegWriteE,
-		ResultSrcE,
-		MemWriteE,
+  pipelineMW_ctrl pipeMW(
+    iclk,
+    irst,
 
-		RegWriteM,
-		ResultSrcM,
-		MemWriteM
-	);
+    RegWriteM,
+    ResultSrcM,
 
-	pipelineMW_ctrl pipeMW(
-		clk,
-		reset,
-		
-		RegWriteM,
-		ResultSrcM,
+    RegWriteW,
+    ResultSrcW
+  );
 
-		RegWriteW,
-		ResultSrcW
-	);
+  // ============================================================================
+  // controller
+  // ============================================================================
 
-	// ============================================================================
-	// controller
-	// ============================================================================
-	
-	assign ResultSrcb0E = ResultSrcE[0];
-	
-	jumpdec jd(
-		.op(opE),
-		.funct3(funct3E),
+  assign ResultSrcb0E = ResultSrcE[0];
 
-		.Zero(ZeroE),
-		.Overflow(OverflowE),
-		.Carry(CarryE),
-		.Negative(NegativeE),
-		
-		.PCSrc(PCSrcE)
-	);
+  jumpdec jd(
+    .op(opE),
+    .funct3(funct3E),
 
-	maindec md(
-		.op(opD),
-		
-		.ResultSrc(ResultSrcD),
-		.MemWrite(MemWriteD),
-		.ALUSrc(ALUSrcD),
-		.RegWrite(RegWriteD),
-		.PCResultSrc(PCResultSrcD),
-		.ImmSrc(ImmSrcD),
-		.ALUOp(ALUOpD)
-	);
-	
-	aludec ad(
-		.opb5(opD[5]),
-		.funct3(funct3D),
-		.funct7b5(funct7b5D),
-		.ALUOp(ALUOpD),
+    .Zero(ZeroE),
+    .Overflow(OverflowE),
+    .Carry(CarryE),
+    .Negative(NegativeE),
 
-		.ALUControl(ALUControlD)
-	);
+    .PCSrc(PCSrcE)
+  );
+
+  maindec md(
+    .op(opD),
+
+    .ResultSrc(ResultSrcD),
+    .MemWrite(MemWriteD),
+    .ALUSrc(ALUSrcD),
+    .RegWrite(RegWriteD),
+    .PCResultSrc(PCResultSrcD),
+    .ImmSrc(ImmSrcD),
+    .ALUOp(ALUOpD)
+  );
+
+  aludec ad(
+    .opb5(opD[5]),
+    .funct3(funct3D),
+    .funct7b5(funct7b5D),
+    .ALUOp(ALUOpD),
+
+    .ALUControl(ALUControlD)
+  );
 
 endmodule

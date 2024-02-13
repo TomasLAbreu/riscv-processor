@@ -9,7 +9,7 @@ module datapath (
 	ImmSrcD,
 	ALUControlE,
 	PCResultSrcE,
-	
+
 	// hazard unit flags
 	ForwardAE,
 	ForwardBE,
@@ -53,7 +53,7 @@ module datapath (
 	input wire [2:0] ImmSrcD;
 	input wire [3:0] ALUControlE;
     input wire PCResultSrcE;
-	
+
 	input [1:0] ForwardAE;
 	input [1:0] ForwardBE;
 	input StallF;
@@ -83,7 +83,7 @@ module datapath (
 	output wire [31:0] WriteDataM;
 	input wire [31:0] MemDataM;
 	output wire [1:0] InstrM_2b;		//last 2 bits to be used on dmem
-	
+
 	wire [31:0] ReadDataM;
 	wire [31:0] PCNextF;
 	wire [31:0] PCTargetE;
@@ -98,7 +98,7 @@ module datapath (
 	// ============================================================================
 	// inputs
 	wire [31:0] PCPlus4F;
-	
+
 	// outputs
 	// wire [31:0] InstrD;
 	wire [31:0] PCD;
@@ -157,7 +157,7 @@ module datapath (
 		InstrF,
 		PCF,
 		PCPlus4F,
-		
+
 		InstrD,
 		PCD,
 		PCPlus4D
@@ -192,7 +192,7 @@ module datapath (
 	pipelineEM_dp pipeEM(
 		clk,
 		reset,
-		
+
 		InstrE,
 		ALUResultE,
 		WriteDataE,
@@ -213,7 +213,7 @@ module datapath (
 	pipelineMW_dp pipeMW(
 		clk,
 		reset,
-		
+
 		ALUResultM,
 		ReadDataM,
 		ImmExtM,
@@ -251,7 +251,7 @@ module datapath (
 	// ============================================================================
 	// datapath
 	// ============================================================================
-		
+
 	assign Rs1D = InstrD[19:15];
 	assign Rs2D = InstrD[24:20];
 	assign RdD = InstrD[11:7];
@@ -265,13 +265,13 @@ module datapath (
 		PCNextF,
 		PCF
 	);
-	
+
 	adder pcadd4(
 		PCF,
 		32'd4,
 		PCPlus4F
 	);
-	
+
 	adder pcaddbranch(
 		PCE,
 		ImmExtE,
@@ -291,9 +291,9 @@ module datapath (
 		PCSrcE,
 		PCNextF
 	);
-	
+
 	regfile rf(
-		.clk(clk),
+		.clk(~clk),
 		.we3(RegWriteW),
 
 		.a1(InstrD[19:15]),
@@ -304,7 +304,7 @@ module datapath (
 		.rd1(RD1D),
 		.rd2(RD2D)
 	);
-	
+
 	extendImm extImm(
 		InstrD[31:7],
 		ImmSrcD,
@@ -317,13 +317,13 @@ module datapath (
 		ALUSrcE,
 		SrcBE
 	);
-	
+
 	alu alu(
 		.SrcA(SrcAE),
 		.SrcB(SrcBE),
 
 		.ALUControl(ALUControlE),
-		
+
 		.ALUResult(ALUResultE),
 		.Zero(ZeroE),
 		.Overflow(OverflowE),

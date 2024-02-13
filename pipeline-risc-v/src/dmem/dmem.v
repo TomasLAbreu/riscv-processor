@@ -1,54 +1,56 @@
-module dmem (
-	clk,
-	we,
-	a,
-	wd,
-	be,
-	rd
-);
-	input wire clk;
-	// write enable
-	input wire we;
-	// memory position to access/index
-	input wire [31:0] a;
-	// write data
-	input wire [31:0] wd;
-	// byte enable
-	input wire [1:0] be;
-	// read data
-	output wire [31:0] rd;
-	
-	reg [31:0] RAM [255:0];
-	assign rd = RAM[a[31:2]];
-    reg debug;
-    
-	always @(posedge clk) begin
-		if (we) begin
-			case(be)
-				2'b00: //store byte
-				    case(a[1:0])
-				        2'b00: RAM[a[31:2]][7:0] <= wd[7:0];
-				        2'b01: RAM[a[31:2]][15:8] <= wd[7:0];
-                        2'b10: RAM[a[31:2]][23:16] <= wd[7:0];
-                        2'b11: RAM[a[31:2]][31:24] <= wd[7:0];
-				    endcase
-				2'b01:  //store half word
-				    case(a[1:0])
-				        2'b00: RAM[a[31:2]][15:0] <= wd[15:0];
-				        2'b01: RAM[a[31:2]][23:8] <= wd[15:0];
-				        2'b10: RAM[a[31:2]][31:16] <= wd[15:0];
-				        2'b11: begin
-				        	RAM[a[31:2]][31:24] <= wd[7:0];
-				        	RAM[a[31:2]][7:0] <= wd[15:8];
-				        end
-				    endcase
-				2'b10:  //store word
-				    RAM[a[31:2]] <= wd;
-				default: 
-					RAM[a[31:2]] <= RAM[a[31:2]];
-			endcase
-			debug = 0;
-		end
-	end
+//------------------------------------------------------------------------------
+module data_mem
+//------------------------------------------------------------------------------
+#(
+  parameter MP_WIDTH = 32,
+  parameter MP_DEPTH = 256
+)
+(
+  input wire                    iclk,
 
-endmodule
+  input wire  [MP_WIDTH-1 : 0]  ipos,   // memory position to access/index
+
+  input wire                    iwen,   // write enable
+  input wire  [1:0]             ibe,    // byte enable //<<<<<<<<<<<< add param?
+  input wire  [MP_WIDTH-1 : 0]  iwdata, // write data
+  output wire [MP_WIDTH-1 : 0]  ordata  // read data
+);
+//------------------------------------------------------------------------------
+  reg [MP_WIDTH-1 : 0] rram [MP_DEPTH-1 : 0];
+
+`define index ipos[MP_WIDTH-1 : 2]
+
+  localparam [1:0]
+    LP_STORE_BYTE = 2'b00,
+    LP_STORE_HALF = 2'b01, // half word
+    LP_STORE_WORD = 2'b10;
+
+  assign ordata = rram[`index];
+
+  always @(posedge iclk) begin : sproc_write_mem
+    if (iwen) begin
+      case(ibe)
+        LP_STORE_BYTE:
+          case(ipos[1:0])
+            2'b00: rram[`index][7:0]   <= iwdata[7:0]; //<<<<<<<<<<<< rewrite this with generate
+            2'b01: rram[`index][15:8]  <= iwdata[7:0];
+            2'b10: rram[`index][23:16] <= iwdata[7:0];
+            2'b11: rram[`index][31:24] <= iwdata[7:0];
+          endcase
+        LP_STORE_HALF:
+          case(ipos[1:0])
+            2'b00: rram[`index][15:0]  <= iwdata[15:0];
+            2'b01: rram[`index][23:8]  <= iwdata[15:0];
+            2'b10: rram[`index][31:16] <= iwdata[15:0];
+            2'b11: begin
+              rram[`index][31:24] <= iwdata[7:0];
+              rram[`index][7:0]   <= iwdata[15:8];
+            end
+          endcase
+        LP_STORE_WORD:   rram[`index] <= iwdata;
+        default:         rram[`index] <= rram[a[31:2]];
+      endcase
+    end
+  end
+
+endmodule : data_mem

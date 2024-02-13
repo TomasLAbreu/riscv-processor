@@ -1,16 +1,20 @@
-module imem (
-	a,
-	rd
+//------------------------------------------------------------------------------
+module instr_mem
+//------------------------------------------------------------------------------
+#(
+  parameter MP_WIDTH = 32,
+  parameter MP_DEPTH = 256
+)
+(
+  input wire  [MP_WIDTH-1 : 0]  ipos,  // memory position to access/index
+  output wire [MP_WIDTH-1 : 0]  ordata // read data reg
 );
-	// memory position to access/index
-	input wire [31:0] a;
-	// read data reg
-	output wire [31:0] rd;
-	
-	reg [31:0] RAM [255:0];
-	initial $readmemh("riscvtest.txt", RAM);
-	
-	// access RAM 'a' position
-	assign rd = RAM[a[31:2]];
+//------------------------------------------------------------------------------
 
-endmodule
+  reg [MP_WIDTH-1 : 0] rram [MP_DEPTH-1 : 0];
+
+  initial $readmemh("riscvtest.txt", rram);
+
+  assign ordata = rram[ipos[MP_WIDTH-1 : 2]];
+
+endmodule : instr_mem

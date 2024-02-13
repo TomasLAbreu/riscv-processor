@@ -1,68 +1,53 @@
 `include "../aluops.v"
 
-module aludec (
-	opb5,
-	funct3,
-	funct7b5,
-	ALUOp,
-	ALUControl
+//------------------------------------------------------------------------------
+module aludec
+//------------------------------------------------------------------------------
+(
+  input wire        iop_b5,
+  input wire  [2:0] ifunct3,
+  input wire        ifunct7_b5,
+  input wire  [1:0] iop,
+  output reg  [3:0] octrl
 );
-	input wire opb5;
-	input wire [2:0] funct3;
-	input wire funct7b5;
-	input wire [1:0] ALUOp;
-	
-	output reg [3:0] ALUControl;
-	
-	wire RtypeSub;
-	assign RtypeSub = funct7b5 & opb5;
-	
-	reg debug;
-	
-	always @(*)
-		case (ALUOp)
-			// I Type
-			2'b00: ALUControl = `ADD_OP;
-			// BEQ
-			2'b01: ALUControl = `SUB_OP;
-			default: begin
-				case (funct3)
-					3'b000:
-						if (RtypeSub)
-						    // SUB
-							ALUControl = `SUB_OP;
-						else
-						    // ADD
-							ALUControl = `ADD_OP;
-					
-					// shift left logical
-					3'b001: ALUControl = `SL_OP;
+//------------------------------------------------------------------------------
 
-					// set less than signed
-					3'b010: ALUControl = `SLT_OP;
-					// set less than unsigned
-					3'b011: ALUControl = `SLTU_OP;
+  wire wrtype_sub;
 
-					// xor
-					3'b100: ALUControl = `XOR_OP;
+  localparam [1:0]
+    LP_ALUOP_TYPE_I   = 2'b00,
+    LP_ALUOP_TYPE_BEQ = 2'b01;
 
-					// shift right
-					3'b101: 
-						if(funct7b5)
-							// arithmetic
-							ALUControl = `SRA_OP;
-						else
-							// logic
-							ALUControl = `SR_OP;
+  localparam [2:0]
+    LP_ALUOP_ADD  = 3'b000,
+    LP_ALUOP_SL   = 3'b001, // shift left logical
+    LP_ALUOP_SLT  = 3'b010, // set less than signed
+    LP_ALUOP_SLTU = 3'b011, // set less than unsigned
+    LP_ALUOP_XOR  = 3'b100,
+    LP_ALUOP_SR   = 3'b101, // shift right arithmetic/logic
+    LP_ALUOP_OR   = 3'b110,
+    LP_ALUOP_AND  = 3'b111;
 
-					// or
-					3'b110: ALUControl = `OR_OP;
-					// and
-					3'b111: ALUControl = `AND_OP;
-					
-					default: ALUControl = `NOP_OP;
-				endcase
-				debug = 0;
-            end
-		endcase
-endmodule
+  assign wrtype_sub = ifunct7_b5 & iop_b5;
+
+  always @(*) begin : cproc_aludec
+    case (iop)
+      LP_ALUOP_TYPE_I:   octrl = `ADD_OP;
+      LP_ALUOP_TYPE_BEQ: octrl = `SUB_OP;
+      default: begin
+        case (ifunct3)
+          LP_ALUOP_ADD:  octrl = wrtype_sub ? `SUB_OP : `ADD_OP;
+          LP_ALUOP_SL:   octrl = `SL_OP;
+          LP_ALUOP_SLT:  octrl = `SLT_OP;
+          LP_ALUOP_SLTU: octrl = `SLTU_OP;
+          LP_ALUOP_XOR:  octrl = `XOR_OP;
+          LP_ALUOP_SR:   octrl = ifunct7_b5 ? `SRA_OP : `SR_OP;
+          LP_ALUOP_OR:   octrl = `OR_OP;
+          LP_ALUOP_AND:  octrl = `AND_OP;
+          default:       octrl = `NOP_OP;
+        endcase
+      end
+    endcase
+  end
+
+endmodule : aludec

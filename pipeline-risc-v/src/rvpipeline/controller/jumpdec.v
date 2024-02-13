@@ -1,41 +1,48 @@
-module jumpdec(
-	input [6:0] op,
-	input [2:0] funct3,
+//------------------------------------------------------------------------------
+module jumpdec
+//------------------------------------------------------------------------------
+(
+  input wire  [6:0] iop,
+  input wire  [2:0] ifunct3,
 
-	input Zero,
-	input Overflow,
-	input Carry,
-	input Negative,
+  input wire        izero,
+  input wire        ioverflow,
+  input wire        icarry,
+  input wire        inegative,
 
-	output reg PCSrc
+  output reg        opc_src
 );
+//------------------------------------------------------------------------------
 
-always @(*) begin
-	case (op)
-		// branch ops
-		7'b110_0011:
-			case (funct3)
-				// beq: if =
-				3'b000: PCSrc = Zero;
-				// bne: if !=
-				3'b001: PCSrc = ~Zero;
-				// blt: if <
-				3'b100: PCSrc = Negative ^ Overflow;
-				// bge: if >=
-				3'b101: PCSrc = ~Zero & ~(Negative ^ Overflow);
-				// bltu: if < unsigned
-				3'b110: PCSrc = ~Carry;
-				// bgeu: if >= unsigned
-				3'b111: PCSrc = Carry;
-			endcase
+  localparam [6:0]
+    LP_OP_B    = 7'b110_0011, // branch ops
+    LP_OP_JALR = 7'b110_0111,
+    LP_OP_JAL  = 7'b110_1111;
 
-		// jalr
-		7'b1100111: PCSrc = 1;
-		// jal
-		7'b1101111: PCSrc = 1;
+  localparam [2:0]
+    LP_OP_BEQ  = 3'b000, // equal
+    LP_OP_BNE  = 3'b001, // not equal
+    LP_OP_BLT  = 3'b100, // less then
+    LP_OP_BGE  = 3'b101, // bigger or equal
+    LP_OP_BLTU = 3'b110, // less then (unsigned)
+    LP_OP_BGEU = 3'b111; // bigger or equal (unsigned)
 
-		default: PCSrc = 0;
-	endcase
-end
+  always @(*) begin : cproc_jumpdec
+    case (iop)
+      LP_OP_B:
+        case (ifunct3)
+          LP_OP_BEQ:  opc_src = izero;
+          LP_OP_BNE:  opc_src = ~izero;
+          LP_OP_BLT:  opc_src = inegative ^ ioverflow;
+          LP_OP_BGE:  opc_src = ~izero & ~(inegative ^ ioverflow);
+          LP_OP_BLTU: opc_src = ~icarry;
+          LP_OP_BGEU: opc_src = icarry;
+        endcase
 
-endmodule
+      LP_OP_JALR: opc_src = 1;
+      LP_OP_JAL:  opc_src = 1;
+      default:    opc_src = 0;
+    endcase
+  end
+
+endmodule : jumpdec

@@ -1,35 +1,41 @@
-module regfile (
-	clk,
-	we3,
-	a1,
-	a2,
-	a3,
-	wd3,
-	rd1,
-	rd2
+//------------------------------------------------------------------------------
+module regfile
+//------------------------------------------------------------------------------
+#(
+  parameter MP_DATA_WIDTH = 32,
+  parameter MP_ADDR_WIDTH = 5
+)
+(
+  input wire                        iclk,
+  input wire                        iwen3,
+
+  input wire  [MP_ADDR_WIDTH-1 : 0] ia1,
+  input wire  [MP_ADDR_WIDTH-1 : 0] ia2,
+  input wire  [MP_ADDR_WIDTH-1 : 0] ia3,
+  input wire  [MP_DATA_WIDTH-1 : 0] iwdata3,
+
+  output wire [MP_DATA_WIDTH-1 : 0] ordata1,
+  output wire [MP_DATA_WIDTH-1 : 0] ordata2
 );
-	input wire clk;
-	input wire we3;
-	input wire [4:0] a1;
-	input wire [4:0] a2;
-	input wire [4:0] a3;
-	input wire [31:0] wd3;
-	
-	output wire [31:0] rd1;
-	output wire [31:0] rd2;
-	
-	reg [31:0] rf [31:0];
-	
-	integer i;
-	initial begin
-	   for(i = 0; i < 32; i = i + 1)
-	       rf[i] = 0;
-	end
-	
-	always @(negedge clk)
-		if (we3)
-			rf[a3] <= wd3;
-	
-	assign rd1 = (a1 != 0 ? rf[a1] : 0);
-	assign rd2 = (a2 != 0 ? rf[a2] : 0);
-endmodule
+//------------------------------------------------------------------------------
+
+  localparam LP_REG_NUM = 2**MP_ADDR_WIDTH;
+
+  reg [MP_DATA_WIDTH-1 : 0] rram [LP_REG_NUM-1 : 0];
+
+  integer i;
+  initial begin : init_regfile_ram
+    for(i = 0; i < LP_REG_NUM; i = i + 1)
+      rram[i] = 0;
+  end
+
+  always @(posedge iclk) begin : sproc_wr_reg3
+    if (iwen3) begin
+      rram[ia3] <= iwdata3;
+    end
+  end
+
+  assign ordata1 = (ia1 != 0) ? rram[ia1] : 0;
+  assign ordata2 = (ia2 != 0) ? rram[ia2] : 0;
+
+endmodule : regfile

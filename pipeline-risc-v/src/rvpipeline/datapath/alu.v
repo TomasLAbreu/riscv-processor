@@ -1,63 +1,59 @@
 `include "../aluops.v"
 
-module alu (
-	SrcA,
-	SrcB,
-	ALUControl,
-	ALUResult,
-	Zero,
-	Overflow,
-	Carry,
-	Negative
+//------------------------------------------------------------------------------
+module alu
+//------------------------------------------------------------------------------
+#(
+  parameter MP_DATA_WIDTH = 32
+)
+(
+  input wire signed [3:0]                  ictrl,
+
+  input wire signed [MP_DATA_WIDTH-1 : 0]  isrc_a,
+  input wire        [MP_DATA_WIDTH-1 : 0]  isrc_b,
+
+  output reg        [MP_DATA_WIDTH-1 : 0]  oresult,
+  output wire                              ozero,
+  output wire                              ooverflow,
+  output wire                              ocarry,
+  output wire                              onegative,
 );
-	input wire signed [31:0] SrcA;
-	input wire [31:0] SrcB;
-	input wire signed [3:0] ALUControl;
+//------------------------------------------------------------------------------
 
-	output reg [31:0] ALUResult;
-	// ALU flags
-	output wire Zero;
-	output wire Overflow;
-	output wire Carry;
-	output wire Negative;
+  localparam LP_LSB = MP_DATA_WIDTH-1;
 
-	wire [31:0] Sum;
-    wire [31:0] muxInvResult;
-    wire Cout;
-    
-	mux2 #(32) muxInv(
-		SrcB,
-	    ~SrcB + 1,
-		ALUControl[0],
-		muxInvResult
-	);
+  wire [MP_DATA_WIDTH-1 : 0] wsum;
+  wire [MP_DATA_WIDTH-1 : 0] winv_result;
+  wire wcarry_out;
+  wire waux1;
+  wire waux2;
 
-	assign Zero = (ALUResult == {32{1'b0}});
-	assign Negative = ALUResult[31];
-	assign Carry = ~ALUControl[1] & Cout;
-	assign Overflow = (~(ALUControl[0] ^ SrcA[31] ^ SrcB[31]) & (SrcA[31] ^ Sum[31]) & ~ALUControl[1]);
+  // auxiliar wires
+  assign winv_result = ictrl[0] ? isrc_b : (~isrc_b + 1);
+  assign {wcarry_out, wsum} = isrc_a + winv_result;
+  assign waux1 = ~(ictrl[0] ^ isrc_a[LP_LSB] ^ isrc_b[LP_LSB]);
+  assign waux2 = (isrc_a[LP_LSB] ^ wsum[LP_LSB]);
 
-	assign {Cout, Sum} = SrcA + muxInvResult;
+  // ALU flags
+  assign ozero     = (oresult == {32{1'b0}});
+  assign onegative = oresult[LP_LSB];
+  assign ocarry    = ~ictrl[1] & wcarry_out;
+  assign ooverflow = ~ictrl[1] & waux1 & waux2;
 
-    reg debug;
+  always @(*) begin : cproc_alu
+    case (ictrl)
+      `ADD_OP : oresult = wsum;
+      `SUB_OP : oresult = wsum;
+      `AND_OP : oresult = isrc_a & isrc_b;
+      `OR_OP  : oresult = isrc_a | isrc_b;
+      `SLT_OP : oresult = {{MP_DATA_WIDTH-1{1'b0}}, ooverflow ^ wsum[LP_LSB]};
+      `SLTU_OP: oresult = {{MP_DATA_WIDTH-1{1'b0}}, ~ocarry};
+      `XOR_OP : oresult = isrc_a ^ isrc_b;
+      `SL_OP  : oresult = isrc_a << isrc_b[4:0];
+      `SR_OP  : oresult = isrc_a >> isrc_b[4:0];
+      `SRA_OP : oresult = isrc_a >>> isrc_b[4:0];
+      default:  oresult = oresult;
+    endcase
+   end
 
-    //assign address = SrcA + SrcB;
-    
-	always @(*) begin
-		case (ALUControl)
-			`ADD_OP	: ALUResult = Sum;
-			`SUB_OP	: ALUResult = Sum;
-			`AND_OP	: ALUResult = SrcA & SrcB;
-			`OR_OP	: ALUResult = SrcA | SrcB;
-			`SLT_OP	: ALUResult = {{31{1'b0}}, Overflow ^ Sum[31]};
-			`SLTU_OP: ALUResult = {{31{1'b0}}, ~Carry};
-			`XOR_OP : ALUResult = SrcA ^ SrcB;
-			`SL_OP  : ALUResult = SrcA << SrcB[4:0];
-			`SR_OP  : ALUResult = SrcA >> SrcB[4:0];
-			`SRA_OP : ALUResult = SrcA >>> SrcB[4:0];
-
-			default: ALUResult = ALUResult;
-		endcase
-		debug = 0;
-    end
-endmodule
+endmodule : alu

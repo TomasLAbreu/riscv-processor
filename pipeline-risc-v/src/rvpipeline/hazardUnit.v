@@ -1,52 +1,70 @@
-module hazardUnit(
-	input [4:0] Rs1D,
-	input [4:0] Rs2D,
+//------------------------------------------------------------------------------
+module hazard_unit
+//------------------------------------------------------------------------------
+(
+	input wire	[4:0]	irs1_decod,
+	input wire	[4:0]	irs2_decod,
 
-	input [4:0] Rs1E,
-	input [4:0] Rs2E,
-	input [4:0] RdE,
-	input PCSrcE,
-	input ResultSrcb0E,
+	input wire	[4:0]	irs1_exect,
+	input wire	[4:0]	irs2_exect,
+	input wire	[4:0]	ird_exect,
+	input wire				ipc_src_exect,
+	input wire				iresult_src_b0_exect,
 
-	input [4:0] RdM,
-	input [4:0] RdW,
-	input RegWriteM,
-	input RegWriteW,
+	input wire	[4:0]	ird_mem,
+	input wire	[4:0]	ird_wrt,
+	input wire				ireg_wr_mem,
+	input wire				ireg_wr_wrt,
 
-	output [1:0] ForwardAE,
-	output [1:0] ForwardBE,
+	output reg	[1:0]	oforward_ae,
+	output reg	[1:0]	oforward_be,
 
-	output StallF,
-	output StallD,
-	output FlushD,
-	output FlushE
+	output wire				ostall_fetch,
+	output wire				ostall_decod,
+	output wire				oflush_decod,
+	output wire				oflush_exect
 );
+//------------------------------------------------------------------------------
 
-wire lwStall;
+	wire wstall_lw;
 
-// ============================================================================
-// control hazards
-// ============================================================================
+	// ---------------
+	// control hazards
 
-// branch control hazard
-assign FlushD = PCSrcE; 
-assign FlushE = lwStall | PCSrcE;
+	// branch control hazard
+	assign oflush_decod = ipc_src_exect;
+	assign oflush_exect = wstall_lw | ipc_src_exect;
 
-// ============================================================================
-// data hazards
-// ============================================================================
+	// ---------------
+	// data hazards
 
-// load word stalls
-assign lwStall = ResultSrcb0E & ((Rs1D == RdE) | (Rs2D == RdE));
-assign StallF = lwStall;
-assign StallD = lwStall;
+	// load word stalls
+	assign wstall_lw = iresult_src_b0_exect & ((irs1_decod == ird_exect) | (irs2_decod == ird_exect));
+	assign ostall_fetch = wstall_lw;
+	assign ostall_decod = wstall_lw;
 
-assign ForwardAE = 
-	(((Rs1E == RdM) & RegWriteM) & (Rs1E != 0)) ? 2'b10 :
-	((((Rs1E == RdW) & RegWriteW) & (Rs1E != 0)) ? 2'b01 : 2'b00);
+	always @(*) begin : cproc_forward_ae
+		if (((irs1_exect == ird_mem) & ireg_wr_mem) & (irs1_exect != 0)) begin
+			oforward_ae = 2'b10;
+		end else begin
+			if (((irs1_exect == ird_wrt) & ireg_wr_wrt) & (irs1_exect != 0)) begin
+				oforward_ae = 2'b01;
+			end else begin
+				oforward_ae = 2'b00;
+			end
+		end
+	end
 
-assign ForwardBE = 
-	(((Rs2E == RdM) & RegWriteM) & (Rs2E != 0)) ? 2'b10 :
-	((((Rs2E == RdW) & RegWriteW) & (Rs2E != 0)) ? 2'b01 : 2'b00);
+	always @(*) begin : cproc_forward_be
+		if (((irs2_exect == ird_mem) & ireg_wr_mem) & (irs2_exect != 0)) begin
+			oforward_be = 2'b10;
+		end else begin
+			if (((irs2_exect == ird_wrt) & ireg_wr_wrt) & (irs2_exect != 0)) begin
+				oforward_be = 2'b01;
+			end else begin
+				oforward_be = 2'b00;
+			end
+		end
+	end
 
-endmodule
+endmodule : hazard_unit
