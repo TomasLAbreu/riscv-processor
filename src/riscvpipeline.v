@@ -5,12 +5,12 @@ module riscvpipeline
   parameter MP_DATA_WIDTH = 32
 )
 (
-  input wire          iclk,
-  input wire          irst,
-  output wire [31:0]  PCF,
-  input wire  [31:0]  InstrF,
-  output wire [1:0]   InstrM,
-  output wire         MemWriteM,
+  input wire                        iclk,
+  input wire                        irst,
+  output wire [31:0]                PCF,
+  input wire  [31:0]                InstrF,
+  output wire [1:0]                 InstrM,
+  output wire                       MemWriteM,
   output wire [MP_DATA_WIDTH-1 : 0] ALUResultM,
   output wire [MP_DATA_WIDTH-1 : 0] WriteDataM,
   input wire  [MP_DATA_WIDTH-1 : 0] ReadDataM

@@ -55,52 +55,49 @@ module controller (
   // pipelines instantiation
   // ============================================================================
 
-  pipelineDE_ctrl pipeDE(
-    iclk,
-    irst | FlushE,
+  always @(posedge iclk) begin : sproc_pipeline_dec_exec
+    if (irst | FlushE) begin
+      opE          <= {7{1'b0}};
+      funct3E      <= {{1'b0}};
+      RegWriteE    <= {{1'b0}};
+      ResultSrcE   <= {{1'b0}};
+      MemWriteE    <= {{1'b0}};
+      ALUControlE  <= {{1'b0}};
+      ALUSrcE      <= {{1'b0}};
+      PCResultSrcE <= {{1'b0}};
+    end else begin
+      opE          <= opD;
+      funct3E      <= funct3D;
+      RegWriteE    <= RegWriteD;
+      ResultSrcE   <= ResultSrcD;
+      MemWriteE    <= MemWriteD;
+      ALUControlE  <= ALUControlD;
+      ALUSrcE      <= ALUSrcD;
+      PCResultSrcE <= PCResultSrcD;
+    end
+  end
 
-    opD,
-    funct3D,
-    RegWriteD,
-    ResultSrcD,
-    MemWriteD,
-    ALUControlD,
-    ALUSrcD,
-    PCResultSrcD,
+  always @(posedge iclk) begin : sproc_pipeline_exec_mem
+    if (irst) begin
+      RegWriteM  <= {{1'b0}};
+      ResultSrcM <= {{1'b0}};
+      MemWriteM  <= {{1'b0}};
+    end else begin
+      RegWriteM  <= RegWriteE;
+      ResultSrcM <= ResultSrcE;
+      MemWriteM  <= MemWriteE;
+    end
+  end
 
-    opE,
-    funct3E,
-    RegWriteE,
-    ResultSrcE,
-    MemWriteE,
-    ALUControlE,
-    ALUSrcE,
-    PCResultSrcE
-  );
-
-  pipelineEM_ctrl pipeEM(
-    iclk,
-    irst,
-
-    RegWriteE,
-    ResultSrcE,
-    MemWriteE,
-
-    RegWriteM,
-    ResultSrcM,
-    MemWriteM
-  );
-
-  pipelineMW_ctrl pipeMW(
-    iclk,
-    irst,
-
-    RegWriteM,
-    ResultSrcM,
-
-    RegWriteW,
-    ResultSrcW
-  );
+  always @(posedge iclk) begin : sproc_pipeline_mem_wr
+    if (irst) begin
+      RegWriteW  <= {{1'b0}};
+      ResultSrcW <= {{1'b0}};
+    end else begin
+      RegWriteW  <= RegWriteM;
+      ResultSrcW <= ResultSrcM;
+    end
+  end
 
   // ============================================================================
   // controller
@@ -111,18 +108,15 @@ module controller (
   jumpdec jd(
     .op(opE),
     .funct3(funct3E),
-
     .Zero(ZeroE),
     .Overflow(OverflowE),
     .Carry(CarryE),
     .Negative(NegativeE),
-
     .PCSrc(PCSrcE)
   );
 
   maindec md(
     .op(opD),
-
     .ResultSrc(ResultSrcD),
     .MemWrite(MemWriteD),
     .ALUSrc(ALUSrcD),
@@ -137,7 +131,6 @@ module controller (
     .funct3(funct3D),
     .funct7b5(funct7b5D),
     .ALUOp(ALUOpD),
-
     .ALUControl(ALUControlD)
   );
 

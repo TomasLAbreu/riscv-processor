@@ -151,85 +151,88 @@ module datapath (
   // ============================================================================
   // pipelines instantiation
   // ============================================================================
-  pipelineFD_dp pipeFD(
-    clk,
-    reset | FlushD,
-    ~StallD,  // enable
 
-    InstrF,
-    PCF,
-    PCPlus4F,
+  always @(posedge iclk) begin : sproc_pipeline_fet_dec
+    if (irst | FlushD) begin
+      InstrD   <= {{1'b0}};
+      PCD      <= {{1'b0}};
+      PCPlus4D <= {{1'b0}};
+    end else begin
+      if (~StallD) begin
+        InstrD   <= InstrF;
+        PCD      <= PCF;
+        PCPlus4D <= PCPlus4F;
+      end
+    end
+  end
 
-    InstrD,
-    PCD,
-    PCPlus4D
-  );
+  always @(posedge iclk) begin
+    if (irst | FlushE) begin
+      InstrE <= {{1'b0}};
+    end else begin
+      InstrE <= InstrD[14:12],
+    end
+  end
 
-  pipelineDE_dp pipeDE(
-    clk,
-    reset,
-    FlushE,
+  always @(posedge iclk) begin : sproc_pipeline_dec_exec
+    if (irst | FlushE) begin
+      RD1E     <= {{1'b0}};
+      RD2E     <= {{1'b0}};
+      PCE      <= {{1'b0}};
+      Rs1E     <= {{1'b0}};
+      Rs2E     <= {{1'b0}};
+      RdE      <= {{1'b0}};
+      ImmExtE  <= {{1'b0}};
+      PCPlus4E <= {{1'b0}};
+    end else begin
+      RD1E     <= RD1D;
+      RD2E     <= RD2D;
+      PCE      <= PCD;
+      Rs1E     <= Rs1D;
+      Rs2E     <= Rs2D;
+      RdE      <= RdD;
+      ImmExtE  <= ImmExtD;
+      PCPlus4E <= PCPlus4D;
+    end
+  end
 
-    InstrD[14:12],
-    RD1D,
-    RD2D,
-    PCD,
-    Rs1D,
-    Rs2D,
-    RdD,
-    ImmExtD,
-    PCPlus4D,
+  always @(posedge iclk) begin : sproc_pipeline_exec_mem
+    if (irst) begin
+      InstrM     <= {{1'b0}};
+      ALUResultM <= {{1'b0}};
+      WriteDataM <= {{1'b0}};
+      ImmExtM    <= {{1'b0}};
+      RdM        <= {{1'b0}};
+      PCResultM  <= {{1'b0}};
+      PCPlus4M   <= {{1'b0}};
+    end else begin
+      InstrM     <= InstrE;
+      ALUResultM <= ALUResultE;
+      WriteDataM <= WriteDataE;
+      ImmExtM    <= ImmExtE;
+      RdM        <= RdE;
+      PCResultM  <= PCResultE;
+      PCPlus4M   <= PCPlus4E;
+    end
+  end
 
-    InstrE,
-    RD1E,
-    RD2E,
-    PCE,
-    Rs1E,
-    Rs2E,
-    RdE,
-    ImmExtE,
-    PCPlus4E
-  );
-
-  pipelineEM_dp pipeEM(
-    clk,
-    reset,
-
-    InstrE,
-    ALUResultE,
-    WriteDataE,
-    ImmExtE,
-    RdE,
-    PCResultE,
-    PCPlus4E,
-
-    InstrM,
-    ALUResultM,
-    WriteDataM,
-    ImmExtM,
-    RdM,
-    PCResultM,
-    PCPlus4M
-  );
-
-  pipelineMW_dp pipeMW(
-    clk,
-    reset,
-
-    ALUResultM,
-    ReadDataM,
-    ImmExtM,
-    RdM,
-    PCResultM,
-    PCPlus4M,
-
-    ALUResultW,
-    ReadDataW,
-    ImmExtW,
-    RdW,
-    PCResultW,
-    PCPlus4W
-  );
+  always @(posedge iclk) begin : sproc_pipeline_mem_writ
+    if (irst) begin
+      ALUResultW <= {{1'b0}};
+      ReadDataW  <= {{1'b0}};
+      ImmExtW    <= {{1'b0}};
+      RdW        <= {{1'b0}};
+      PCResultW  <= {{1'b0}};
+      PCPlus4W   <= {{1'b0}};
+    end else begin
+      ALUResultW <= ALUResultM;
+      ReadDataW  <= ReadDataM;
+      ImmExtW    <= ImmExtM;
+      RdW        <= RdM;
+      PCResultW  <= PCResultM;
+      PCPlus4W   <= PCPlus4M;
+    end
+  end
 
   // ============================================================================
   // hazard unit muxes
@@ -261,15 +264,15 @@ module datapath (
   assign Rs2D = InstrD[24:20];
   assign RdD  = InstrD[11:7];
 
-
-  flopenrsync #(32) pcreg(
-    clk,
-    reset,
-    ~StallF,
-
-    PCNextF,
-    PCF
-  );
+  always @(posedge iclk or posedge irst) begin : sproc_pc_reg
+    if (irst) begin
+      PCF <= {{1'b0}};
+    end else begin
+      if (~StallF) begin
+        PCF <= PCNextF;
+      end
+    end
+  end
 
   assign PCPlus4F = PCF + 32'd4;
   assign PCTargetE = PCE + ImmExtE;
