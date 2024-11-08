@@ -1,335 +1,292 @@
-module datapath (
-  clk,
-  reset,
+//------------------------------------------------------------------------------
+module datapath
+//------------------------------------------------------------------------------
+#(
+  parameter MP_DATA_WIDTH = 32,
+  parameter MP_ADDR_WIDTH = 32
+)
+(
+  input wire          iclk,
+  input wire          irst,
 
-  ResultSrcW,
-  PCSrcE,
-  ALUSrcE,
-  RegWriteW,
-  ImmSrcD,
-  ALUControlE,
-  PCResultSrcE,
+  input wire  [2:0]   iresult_src_w,
+  input wire          ipc_src_e,
+  input wire          ialu_src_e,
+  input wire          ireg_wr_w,
+  input wire  [2:0]   iimm_src_d,
+  input wire  [3:0]   ialu_ctrl_e,
+  input wire          ipc_result_src_e,
 
-  // hazard unit flags
-  ForwardAE,
-  ForwardBE,
-  StallF,
-  StallD,
-  FlushD,
-  FlushE,
+  input wire  [1:0]   iforward_ae,
+  input wire  [1:0]   iforward_be,
+  input wire          istall_f,
+  input wire          istall_d,
+  input wire          iflush_d,
+  input wire          iflush_e,
 
-  // outputs
-  // hazard unit inputs
-  Rs1D,
-  Rs2D,
-  Rs1E,
-  Rs2E,
-  RdE,
-
-  RdM,
-  RdW,
+  output wire [4:0]   ors1_d,
+  output wire [4:0]   ors2_d,
+  output reg  [4:0]   ors1_e,
+  output reg  [4:0]   ors2_e,
+  output reg  [4:0]   ord_e,
+  output reg  [4:0]   ord_m,
+  output reg  [4:0]   ord_w,
 
   // ALU flags
-  ZeroE,
-  OverflowE,
-  CarryE,
-  NegativeE,
+  output wire         oalu_zero_e,
+  output wire         oalu_ovfl_e,
+  output wire         oalu_carry_e,
+  output wire         oalu_neg_e,
 
-  PCF,
-  InstrF,
-  InstrD,
-  ALUResultM,
-  WriteDataM,
-  MemDataM,
-  InstrM_2b   //last 2 bits to be used on dmem
+  output reg  [31:0]  opc_f,
+  input wire  [31:0]  iinstr_f,
+  output reg  [31:0]  oinstr_d,
+  output reg  [MP_DATA_WIDTH-1:0]  oalu_result_m,
+  output reg  [MP_DATA_WIDTH-1:0]  owdata_m,
+  input wire  [MP_DATA_WIDTH-1:0]  imem_data_m,
+  output wire [1 :0]  oinstr2b_m    //last 2 bits to be used on dmem
 );
-  input wire clk;
-  input wire reset;
+//------------------------------------------------------------------------------
 
-  input wire [2:0] ResultSrcW;
-  input wire PCSrcE;
-  input wire ALUSrcE;
-  input wire RegWriteW;
-  input wire [2:0] ImmSrcD;
-  input wire [3:0] ALUControlE;
-    input wire PCResultSrcE;
+  wire [MP_DATA_WIDTH-1:0] wrdata_m;
+  wire [31:0] wpc_next_f;
+  wire [31:0] wpc_target_e;
+  wire [31:0] wpc_result_e; // result of mux ALUResult and PCTarget
 
-  input [1:0] ForwardAE;
-  input [1:0] ForwardBE;
-  input StallF;
-  input StallD;
-  input FlushD;
-  input FlushE;
+  reg  [31:0] wsrc_a_e;
+  wire [31:0] wsrc_b_e;
 
-  output [4:0] Rs1D;
-  output [4:0] Rs2D;
-  output [4:0] Rs1E;
-  output [4:0] Rs2E;
-  output [4:0] RdE;
+  reg  [MP_DATA_WIDTH-1:0] wresult_w;
 
-  output [4:0] RdM;
-  output [4:0] RdW;
-
-  // ALU flags
-  output wire ZeroE;
-  output wire OverflowE;
-  output wire CarryE;
-  output wire NegativeE;
-
-  output wire [31:0] PCF;
-  input wire [31:0] InstrF;
-  output wire [31:0] InstrD;
-  output wire [31:0] ALUResultM;
-  output wire [31:0] WriteDataM;
-  input wire [31:0] MemDataM;
-  output wire [1:0] InstrM_2b;    //last 2 bits to be used on dmem
-
-  wire [31:0] ReadDataM;
-  wire [31:0] PCNextF;
-  wire [31:0] PCTargetE;
-  wire [31:0] PCResultE; // result of mux ALUResult and PCTarget
-
-  reg [31:0] SrcAE;
-  wire [31:0] SrcBE;
-  wire [31:0] ResultW;
-
-  reg [31:0] ResultW_r;
-
-  // ============================================================================
   // pipeline Fetch - Decode
-  // ============================================================================
-  // inputs
-  wire [31:0] PCPlus4F;
+  wire [31:0] wpc_plus4_f;
+  reg  [31:0] rpc_plus4_d;
+  reg  [31:0] rpc_d;
 
-  // outputs
-  // wire [31:0] InstrD;
-  wire [31:0] PCD;
-  wire [31:0] PCPlus4D;
-
-  // ============================================================================
   // pipeline Decode - Execute
-  // ============================================================================
-  // inputs
-  wire [31:0] RD1D;
-  wire [31:0] RD2D;
-  wire [4:0] RdD;
-  wire [31:0] ImmExtD;
+  wire [MP_DATA_WIDTH-1:0] wrd1_d;
+  wire [MP_DATA_WIDTH-1:0] wrd2_d;
+  wire [4:0]  wrd_d;
+  wire [31:0] wimm_ext_d;
+  reg  [2:0]  rinstr_e;
+  reg  [MP_DATA_WIDTH-1:0] rrd1_e;
+  reg  [MP_DATA_WIDTH-1:0] rrd2_e;
+  reg  [31:0] rpc_e;
+  reg  [31:0] rimm_ext_e;
+  reg  [31:0] rpc_plus4_e;
 
-  // outputs
-  wire [2:0] InstrE;
-  wire [31:0] RD1E;
-  wire [31:0] RD2E;
-  wire [31:0] PCE;
-  wire [31:0] ImmExtE;
-  wire [31:0] PCPlus4E;
-
-  // ============================================================================
   // pipeline Execute - Memory
-  // ============================================================================
-  // inputs
-  reg [31:0] WriteDataE;
-  wire [31:0] ALUResultE;
+  reg  [MP_DATA_WIDTH-1:0] wwdata_e;
+  wire [31:0] walu_result_e;
+  reg  [2:0]  rinstr_m;
+  reg  [31:0] rimm_ext_m;
+  reg  [31:0] rpc_result_m;
+  reg  [31:0] rpc_plus4_m;
 
-  // outputs
-  wire [2:0] InstrM;
-  wire [31:0] ImmExtM;
-  wire [31:0] PCResultM;
-  wire [31:0] PCPlus4M;
-
-  // ============================================================================
   // pipeline Memory - Writeback
-  // ============================================================================
-  // outputs
-  wire [31:0] ImmExtW;
-  wire [31:0] ALUResultW;
-  wire [31:0] ReadDataW;
-  wire [31:0] PCResultW;
-  wire [31:0] PCPlus4W;
+  reg  [31:0] rimm_ext_w;
+  reg  [31:0] ralu_result_w;
+  reg  [MP_DATA_WIDTH-1:0] rrdata_w;
+  reg  [31:0] rpc_result_w;
+  reg  [31:0] rpc_plus4_w;
 
-  assign InstrM_2b = InstrM[1:0];
-
-  // ============================================================================
-  // pipelines instantiation
-  // ============================================================================
+//------------------------------------------------------------------------------
+// pipelines
+//------------------------------------------------------------------------------
 
   always @(posedge iclk) begin : sproc_pipeline_fet_dec
-    if (irst | FlushD) begin
-      InstrD   <= {{1'b0}};
-      PCD      <= {{1'b0}};
-      PCPlus4D <= {{1'b0}};
+    if (irst | iflush_d) begin
+      oinstr_d    <= {32{1'b0}};
+      rpc_d       <= {32{1'b0}};
+      rpc_plus4_d <= {32{1'b0}};
     end else begin
-      if (~StallD) begin
-        InstrD   <= InstrF;
-        PCD      <= PCF;
-        PCPlus4D <= PCPlus4F;
+      if (~istall_d) begin
+        oinstr_d    <= iinstr_f;
+        rpc_d       <= opc_f;
+        rpc_plus4_d <= wpc_plus4_f;
       end
     end
   end
 
   always @(posedge iclk) begin
-    if (irst | FlushE) begin
-      InstrE <= {{1'b0}};
+    if (irst) begin
+      rinstr_e    <= {3{1'b0}};
     end else begin
-      InstrE <= InstrD[14:12],
+      rinstr_e    <= oinstr_d[14:12];
     end
   end
 
   always @(posedge iclk) begin : sproc_pipeline_dec_exec
-    if (irst | FlushE) begin
-      RD1E     <= {{1'b0}};
-      RD2E     <= {{1'b0}};
-      PCE      <= {{1'b0}};
-      Rs1E     <= {{1'b0}};
-      Rs2E     <= {{1'b0}};
-      RdE      <= {{1'b0}};
-      ImmExtE  <= {{1'b0}};
-      PCPlus4E <= {{1'b0}};
+    if (irst | iflush_e) begin
+    // if (irst) begin
+      // rinstr_e    <= {3{1'b0}};
+      rrd1_e      <= {MP_DATA_WIDTH{1'b0}};
+      rrd2_e      <= {MP_DATA_WIDTH{1'b0}};
+      rpc_e       <= {32{1'b0}};
+      ors1_e      <= {MP_DATA_WIDTH{1'b0}};
+      ors2_e      <= {MP_DATA_WIDTH{1'b0}};
+      ord_e       <= {5{1'b0}};
+      rimm_ext_e  <= {32{1'b0}};
+      rpc_plus4_e <= {32{1'b0}};
     end else begin
-      RD1E     <= RD1D;
-      RD2E     <= RD2D;
-      PCE      <= PCD;
-      Rs1E     <= Rs1D;
-      Rs2E     <= Rs2D;
-      RdE      <= RdD;
-      ImmExtE  <= ImmExtD;
-      PCPlus4E <= PCPlus4D;
+      // rinstr_e    <= oinstr_d[14:12];
+      rrd1_e      <= wrd1_d;
+      rrd2_e      <= wrd2_d;
+      rpc_e       <= rpc_d;
+      ors1_e      <= ors1_d;
+      ors2_e      <= ors2_d;
+      ord_e       <= wrd_d;
+      rimm_ext_e  <= wimm_ext_d;
+      rpc_plus4_e <= rpc_plus4_d;
     end
   end
 
   always @(posedge iclk) begin : sproc_pipeline_exec_mem
     if (irst) begin
-      InstrM     <= {{1'b0}};
-      ALUResultM <= {{1'b0}};
-      WriteDataM <= {{1'b0}};
-      ImmExtM    <= {{1'b0}};
-      RdM        <= {{1'b0}};
-      PCResultM  <= {{1'b0}};
-      PCPlus4M   <= {{1'b0}};
+      rinstr_m      <= {3{1'b0}};
+      oalu_result_m <= {MP_DATA_WIDTH{1'b0}};
+      owdata_m      <= {MP_DATA_WIDTH{1'b0}};
+      rimm_ext_m    <= {32{1'b0}};
+      ord_m         <= {5{1'b0}};
+      rpc_result_m  <= {32{1'b0}};
+      rpc_plus4_m   <= {32{1'b0}};
     end else begin
-      InstrM     <= InstrE;
-      ALUResultM <= ALUResultE;
-      WriteDataM <= WriteDataE;
-      ImmExtM    <= ImmExtE;
-      RdM        <= RdE;
-      PCResultM  <= PCResultE;
-      PCPlus4M   <= PCPlus4E;
+      rinstr_m      <= rinstr_e;
+      oalu_result_m <= walu_result_e;
+      owdata_m      <= wwdata_e;
+      rimm_ext_m    <= rimm_ext_e;
+      ord_m         <= ord_e;
+      rpc_result_m  <= wpc_result_e;
+      rpc_plus4_m   <= rpc_plus4_e;
     end
   end
 
   always @(posedge iclk) begin : sproc_pipeline_mem_writ
     if (irst) begin
-      ALUResultW <= {{1'b0}};
-      ReadDataW  <= {{1'b0}};
-      ImmExtW    <= {{1'b0}};
-      RdW        <= {{1'b0}};
-      PCResultW  <= {{1'b0}};
-      PCPlus4W   <= {{1'b0}};
+      ralu_result_w <= {MP_DATA_WIDTH{1'b0}};
+      rrdata_w      <= {MP_DATA_WIDTH{1'b0}};
+      rimm_ext_w    <= {32{1'b0}};
+      ord_w         <= {5{1'b0}};
+      rpc_result_w  <= {32{1'b0}};
+      rpc_plus4_w   <= {32{1'b0}};
     end else begin
-      ALUResultW <= ALUResultM;
-      ReadDataW  <= ReadDataM;
-      ImmExtW    <= ImmExtM;
-      RdW        <= RdM;
-      PCResultW  <= PCResultM;
-      PCPlus4W   <= PCPlus4M;
+      ralu_result_w <= oalu_result_m;
+      rrdata_w      <= wrdata_m;
+      rimm_ext_w    <= rimm_ext_m;
+      ord_w         <= ord_m;
+      rpc_result_w  <= rpc_result_m;
+      rpc_plus4_w   <= rpc_plus4_m;
     end
   end
 
-  // ============================================================================
-  // hazard unit muxes
-  // ============================================================================
+//------------------------------------------------------------------------------
+// hazard unit muxes
+//------------------------------------------------------------------------------
 
   always @(*) begin : cproc_src_ae
-    case (ForwardAE)
-      2'b00:   SrcAE = RD1E;
-      2'b01:   SrcAE = ResultW;
-      2'b10:   SrcAE = ALUResultM;
-      default: SrcAE = SrcAE;
+    case (iforward_ae)
+      2'b00:   wsrc_a_e = rrd1_e;
+      2'b01:   wsrc_a_e = wresult_w;
+      2'b10:   wsrc_a_e = oalu_result_m;
+      default: wsrc_a_e = wsrc_a_e;
     endcase
   end
 
   always @(*) begin : cproc_wdata_e
-    case (ForwardBE)
-      2'b00:   WriteDataE = RD2E;
-      2'b01:   WriteDataE = ResultW;
-      2'b10:   WriteDataE = ALUResultM;
-      default: WriteDataE = WriteDataE;
+    case (iforward_be)
+      2'b00:   wwdata_e = rrd2_e;
+      2'b01:   wwdata_e = wresult_w;
+      2'b10:   wwdata_e = oalu_result_m;
+      default: wwdata_e = wwdata_e;
     endcase
   end
 
-  // ============================================================================
-  // datapath
-  // ============================================================================
+//------------------------------------------------------------------------------
+// datapath
+//------------------------------------------------------------------------------
 
-  assign Rs1D = InstrD[19:15];
-  assign Rs2D = InstrD[24:20];
-  assign RdD  = InstrD[11:7];
+  assign ors1_d = oinstr_d[19:15];
+  assign ors2_d = oinstr_d[24:20];
+  assign wrd_d  = oinstr_d[11:7];
+
+  assign oinstr2b_m = rinstr_m[1:0];
 
   always @(posedge iclk or posedge irst) begin : sproc_pc_reg
     if (irst) begin
-      PCF <= {{1'b0}};
+      opc_f <= {32{1'b0}};
     end else begin
-      if (~StallF) begin
-        PCF <= PCNextF;
+      if (~istall_f) begin
+        opc_f <= wpc_next_f;
       end
     end
   end
 
-  assign PCPlus4F = PCF + 32'd4;
-  assign PCTargetE = PCE + ImmExtE;
+  assign wpc_plus4_f = opc_f + 32'd4;
+  assign wpc_target_e = rpc_e + rimm_ext_e;
 
-  assign PCResultE = PCResultSrcE ? ALUResultE : PCTargetE; // <<<<<<<<<<<<< check mux order. d0 and d1 might be swithced
-  assign PCNextF = PCSrcE ? PCResultE : PCPlus4F;
+  assign wpc_result_e = ipc_result_src_e ? walu_result_e : wpc_target_e;
+  assign wpc_next_f = ipc_src_e ? wpc_result_e : wpc_plus4_f;
 
-  regfile rf(
-    .clk(~clk),
-    .we3(RegWriteW),
-    .a1(InstrD[19:15]),
-    .a2(InstrD[24:20]),
-    .a3(RdW),
-    .wd3(ResultW),
-    .rd1(RD1D),
-    .rd2(RD2D)
+  assign wsrc_b_e = ialu_src_e ? rimm_ext_e : wwdata_e;
+
+//------------------------------------------------------------------------------
+// block instantiation
+//------------------------------------------------------------------------------
+
+  regfile #(
+    .MP_DATA_WIDTH (MP_DATA_WIDTH),
+    .MP_ADDR_WIDTH (MP_ADDR_WIDTH)
+  ) u_regfile (
+    .iclk    (~iclk),
+    .iwen3   (ireg_wr_w),
+    .ia1     (ors1_d),
+    .ia2     (ors2_d),
+    .ia3     (ord_w),
+    .iwdata3 (wresult_w),
+    .ordata1 (wrd1_d),
+    .ordata2 (wrd2_d)
   );
 
-  extendImm extImm(
-    InstrD[31:7],
-    ImmSrcD,
-    ImmExtD
+  extend_imm extImm(
+    .iinstr (oinstr_d[31:7]),
+    .isrc   (iimm_src_d),
+    .oext   (wimm_ext_d)
   );
 
-  assign SrcBE = ALUSrcE ? ImmExtE : WriteDataE;
-
-  alu u_alu(
-    .SrcA(SrcAE),
-    .SrcB(SrcBE),
-    .ALUControl(ALUControlE),
-    .ALUResult(ALUResultE),
-    .Zero(ZeroE),
-    .Overflow(OverflowE),
-    .Carry(CarryE),
-    .Negative(NegativeE)
+  alu #(
+    .MP_DATA_WIDTH (MP_DATA_WIDTH)
+  ) u_alu (
+    .ictrl     (ialu_ctrl_e),
+    .isrc_a    (wsrc_a_e),
+    .isrc_b    (wsrc_b_e),
+    .oresult   (walu_result_e),
+    .ozero     (oalu_zero_e),
+    .ooverflow (oalu_ovfl_e),
+    .ocarry    (oalu_carry_e),
+    .onegative (oalu_neg_e)
   );
 
-  assign ResultW = ResultW_r;
+  loaddec #(
+    .MP_DATA_WIDTH (MP_DATA_WIDTH)
+  ) u_loaddec (
+    .imem_data (imem_data_m),
+    .ifunct3   (rinstr_m),
+    .iop       (oalu_result_m[1:0]),
+    .ordata    (wrdata_m)
+  );
+
+//------------------------------------------------------------------------------
 
   always @(*) begin
-    case(ResultSrcW)
-      3'b000: ResultW_r = ALUResultW;
-      3'b111: ResultW_r = ALUResultW;
-      3'b001: ResultW_r = ReadDataW;
-      3'b010: ResultW_r = PCPlus4W;
-      3'b101: ResultW_r = PCResultW;
-      3'b011: ResultW_r = ImmExtW;
-      default: ResultW_r = {32{1'bx}};
+    case(iresult_src_w)
+      3'b000: wresult_w = ralu_result_w;
+      3'b111: wresult_w = ralu_result_w;
+      3'b001: wresult_w = rrdata_w;
+      3'b010: wresult_w = rpc_plus4_w;
+      3'b101: wresult_w = rpc_result_w;
+      3'b011: wresult_w = rimm_ext_w;
+      default: wresult_w = {32{1'bx}};
     endcase
   end
-
-  loaddec loaddec(
-    MemDataM,
-    InstrM,
-    ALUResultM[1:0],
-
-    ReadDataM
-  );
 
 endmodule

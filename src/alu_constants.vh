@@ -1,5 +1,5 @@
-`ifndef __ALUOPS_V__
-`define __ALUOPS_V__
+`ifndef __ALU_CONSTANTS_VH__
+`define __ALU_CONSTANTS_VH__
 
 `define ADD_OP 	4'b0000
 `define SUB_OP 	4'b0001
@@ -15,4 +15,4 @@
 
 `define NOP_OP  4'bxxxx
 
-`endif // __ALUOPS_V__
+`endif // __ALU_CONSTANTS_VH__

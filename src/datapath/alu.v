@@ -1,4 +1,4 @@
-`include "../aluops.v"
+`include "alu_constants.vh"
 
 //------------------------------------------------------------------------------
 module alu
@@ -12,11 +12,11 @@ module alu
   input wire signed [MP_DATA_WIDTH-1 : 0]  isrc_a,
   input wire        [MP_DATA_WIDTH-1 : 0]  isrc_b,
 
-  output reg        [MP_DATA_WIDTH-1 : 0]  oresult,
   output wire                              ozero,
   output wire                              ooverflow,
   output wire                              ocarry,
   output wire                              onegative,
+  output reg        [MP_DATA_WIDTH-1 : 0]  oresult
 );
 //------------------------------------------------------------------------------
 
@@ -25,11 +25,11 @@ module alu
   wire [MP_DATA_WIDTH-1 : 0] wsum;
   wire [MP_DATA_WIDTH-1 : 0] winv_result;
   wire wcarry_out;
-  wire waux1;
+  wire waux1; // rename this -> find out what it means
   wire waux2;
 
   // auxiliar wires
-  assign winv_result = ictrl[0] ? isrc_b : (~isrc_b + 1);
+  assign winv_result = ictrl[0] ? (~isrc_b + 1) : isrc_b;
   assign {wcarry_out, wsum} = isrc_a + winv_result;
   assign waux1 = ~(ictrl[0] ^ isrc_a[LP_LSB] ^ isrc_b[LP_LSB]);
   assign waux2 = (isrc_a[LP_LSB] ^ wsum[LP_LSB]);

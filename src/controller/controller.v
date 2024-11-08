@@ -2,136 +2,132 @@ module controller (
   input             iclk,
   input             irst,
 
-  input             FlushE,
-  input wire  [6:0] opD,
-  input wire  [2:0] funct3D,
-  input wire        funct7b5D,
+  input             iflush_e,
+  input wire  [6:0] iop_d,
+  input wire  [2:0] ifunct3_d,
+  input wire        ifunct7b5_d,
 
   // ALU flags
-  input wire        ZeroE,
-  input wire        OverflowE,
-  input wire        CarryE,
-  input wire        NegativeE,
-  output wire [2:0] ResultSrcW,
+  input wire        izero_e,
+  input wire        ioverflow_e,
+  input wire        icarry_e,
+  input wire        inegative_e,
+  output reg  [2:0] oresult_src_w,
 
-  output wire       MemWriteM,
-  output wire       PCSrcE,
-  output wire       ALUSrcE,
-  output wire       RegWriteW,
-  output wire       RegWriteM,
-  output wire       PCResultSrcE,
-  output wire [2:0] ImmSrcD,
-  output wire [3:0] ALUControlE,
-  output wire       ResultSrcb0E
+  output reg        omem_write_m,
+  output wire       opc_src_e,
+  output reg        oalu_src_e,
+  output reg        oreg_write_w,
+  output reg        oreg_write_m,
+  output reg        opc_result_src_e,
+  output wire [2:0] oimm_src_d,
+  output reg  [3:0] oalu_ctrl_e,
+  output wire       oresult_srcb0_e
 );
 
-  wire [1:0] ALUOpD;
+  wire [1:0] walu_op_d;
 
   // ============================================================================
   // pipeline Decode - Execute
   // ============================================================================
-  // inputs
-  wire RegWriteD;
-  wire [2:0] ResultSrcD;
-  wire MemWriteD;
-  wire [3:0] ALUControlD;
-  wire ALUSrcD;
-  wire PCResultSrcD;
+  wire        wreg_write_d;
+  wire  [2:0] wresult_src_d;
+  wire        wmem_write_d;
+  wire  [3:0] walu_ctrl_d;
+  wire        walu_src_d;
+  wire        wpc_result_src_d;
 
-  // outputs
-  wire [6:0] opE;
-  wire [2:0] funct3E;
-  wire RegWriteE;
-  wire [2:0] ResultSrcE;
-  wire MemWriteE;
+  reg [6:0] rop_e;
+  reg [2:0] rfunct3_e;
+  reg       rreg_write_e;
+  reg [2:0] rresult_src_e;
+  reg       rmem_write_e;
 
   // ============================================================================
   // pipeline Execute - Memory
   // ============================================================================
-  // outputs
-  wire [2:0] ResultSrcM;
+  reg  [2:0] rresult_src_m;
 
   // ============================================================================
-  // pipelines instantiation
+  // pipelines
   // ============================================================================
 
   always @(posedge iclk) begin : sproc_pipeline_dec_exec
-    if (irst | FlushE) begin
-      opE          <= {7{1'b0}};
-      funct3E      <= {{1'b0}};
-      RegWriteE    <= {{1'b0}};
-      ResultSrcE   <= {{1'b0}};
-      MemWriteE    <= {{1'b0}};
-      ALUControlE  <= {{1'b0}};
-      ALUSrcE      <= {{1'b0}};
-      PCResultSrcE <= {{1'b0}};
+    if (irst || iflush_e) begin
+      rop_e            <= {7{1'b0}};
+      rfunct3_e        <= {3{1'b0}};
+      rreg_write_e     <= {1{1'b0}};
+      rresult_src_e    <= {3{1'b0}};
+      rmem_write_e     <= {1{1'b0}};
+      oalu_ctrl_e      <= {4{1'b0}};
+      oalu_src_e       <= {1{1'b0}};
+      opc_result_src_e <= {1{1'b0}};
     end else begin
-      opE          <= opD;
-      funct3E      <= funct3D;
-      RegWriteE    <= RegWriteD;
-      ResultSrcE   <= ResultSrcD;
-      MemWriteE    <= MemWriteD;
-      ALUControlE  <= ALUControlD;
-      ALUSrcE      <= ALUSrcD;
-      PCResultSrcE <= PCResultSrcD;
+      rop_e            <= iop_d;
+      rfunct3_e        <= ifunct3_d;
+      rreg_write_e     <= wreg_write_d;
+      rresult_src_e    <= wresult_src_d;
+      rmem_write_e     <= wmem_write_d;
+      oalu_ctrl_e      <= walu_ctrl_d;
+      oalu_src_e       <= walu_src_d;
+      opc_result_src_e <= wpc_result_src_d;
     end
   end
 
   always @(posedge iclk) begin : sproc_pipeline_exec_mem
     if (irst) begin
-      RegWriteM  <= {{1'b0}};
-      ResultSrcM <= {{1'b0}};
-      MemWriteM  <= {{1'b0}};
+      oreg_write_m  <= {1{1'b0}};
+      omem_write_m  <= {1{1'b0}};
+      rresult_src_m <= {3{1'b0}};
     end else begin
-      RegWriteM  <= RegWriteE;
-      ResultSrcM <= ResultSrcE;
-      MemWriteM  <= MemWriteE;
+      oreg_write_m  <= rreg_write_e;
+      omem_write_m  <= rmem_write_e;
+      rresult_src_m <= rresult_src_e;
     end
   end
 
   always @(posedge iclk) begin : sproc_pipeline_mem_wr
     if (irst) begin
-      RegWriteW  <= {{1'b0}};
-      ResultSrcW <= {{1'b0}};
+      oreg_write_w  <= {1{1'b0}};
+      oresult_src_w <= {3{1'b0}};
     end else begin
-      RegWriteW  <= RegWriteM;
-      ResultSrcW <= ResultSrcM;
+      oreg_write_w  <= oreg_write_m;
+      oresult_src_w <= rresult_src_m;
     end
   end
 
   // ============================================================================
   // controller
   // ============================================================================
+  assign oresult_srcb0_e = rresult_src_e[0];
 
-  assign ResultSrcb0E = ResultSrcE[0];
-
-  jumpdec jd(
-    .op(opE),
-    .funct3(funct3E),
-    .Zero(ZeroE),
-    .Overflow(OverflowE),
-    .Carry(CarryE),
-    .Negative(NegativeE),
-    .PCSrc(PCSrcE)
+  jumpdec u_jumpdec (
+    .iop       (rop_e),
+    .ifunct3   (rfunct3_e),
+    .izero     (izero_e),
+    .ioverflow (ioverflow_e),
+    .icarry    (icarry_e),
+    .inegative (inegative_e),
+    .opc_src   (opc_src_e)
   );
 
-  maindec md(
-    .op(opD),
-    .ResultSrc(ResultSrcD),
-    .MemWrite(MemWriteD),
-    .ALUSrc(ALUSrcD),
-    .RegWrite(RegWriteD),
-    .PCResultSrc(PCResultSrcD),
-    .ImmSrc(ImmSrcD),
-    .ALUOp(ALUOpD)
+  maindec u_maindec (
+    .iop            (iop_d),
+    .oresult_src    (wresult_src_d),
+    .omem_wr        (wmem_write_d),
+    .oalu_src       (walu_src_d),
+    .oreg_wr        (wreg_write_d),
+    .opc_result_src (wpc_result_src_d),
+    .oimm_src       (oimm_src_d),
+    .oalu_op        (walu_op_d)
   );
 
-  aludec ad(
-    .opb5(opD[5]),
-    .funct3(funct3D),
-    .funct7b5(funct7b5D),
-    .ALUOp(ALUOpD),
-    .ALUControl(ALUControlD)
+  aludec u_aludec (
+    .iop_b5     (iop_d[5]),
+    .ifunct3    (ifunct3_d),
+    .ifunct7_b5 (ifunct7b5_d),
+    .iop        (walu_op_d),
+    .octrl      (walu_ctrl_d)
   );
 
 endmodule

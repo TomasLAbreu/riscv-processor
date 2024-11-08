@@ -1,4 +1,4 @@
-`include "../aluops.v"
+`include "alu_constants.vh"
 
 //------------------------------------------------------------------------------
 module aludec

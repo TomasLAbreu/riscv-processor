@@ -25,6 +25,12 @@ module data_mem
     LP_STORE_HALF = 2'b01, // half word
     LP_STORE_WORD = 2'b10;
 
+  integer i;
+  // initial begin : init_regfile_ram
+  //   for(i = 0; i < MP_DEPTH; i = i + 1)
+  //     rram[i] = 0;
+  // end
+
   assign ordata = rram[`index];
 
   always @(posedge iclk) begin : sproc_write_mem
@@ -48,7 +54,7 @@ module data_mem
             end
           endcase
         LP_STORE_WORD:   rram[`index] <= iwdata;
-        default:         rram[`index] <= rram[a[31:2]];
+        default:         rram[`index] <= rram[`index];
       endcase
     end
   end

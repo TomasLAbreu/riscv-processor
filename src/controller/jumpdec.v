@@ -39,9 +39,9 @@ module jumpdec
           LP_OP_BGEU: opc_src = icarry;
         endcase
 
-      LP_OP_JALR: opc_src = 1;
-      LP_OP_JAL:  opc_src = 1;
-      default:    opc_src = 0;
+      LP_OP_JALR: opc_src = 1'b1;
+      LP_OP_JAL:  opc_src = 1'b1;
+      default:    opc_src = 1'b0;
     endcase
   end
 

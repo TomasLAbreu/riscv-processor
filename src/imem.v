@@ -13,7 +13,8 @@ module instr_mem
 
   reg [MP_WIDTH-1 : 0] rram [MP_DEPTH-1 : 0];
 
-  initial $readmemh("riscvtest.txt", rram);
+  // initial $readmemh("riscvtest.txt", rram);
+  initial $readmemh("../sim/riscvtest.txt", rram);
 
   assign ordata = rram[ipos[MP_WIDTH-1 : 2]];
 

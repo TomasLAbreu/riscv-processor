@@ -1,0 +1,16 @@
+## HW
+riscv-processor
+dmem
+imem
+UVM Testbench
+axi-master
+axi-slave
+regbank
+interface to linux
+
+## SW
+compiler - compile only the defined cmds by riscvp
+accelerator device driver
+buildroot custom image
+qemu simulation
+

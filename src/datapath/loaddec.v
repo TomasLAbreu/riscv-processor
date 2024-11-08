@@ -13,10 +13,10 @@ module loaddec
 );
 //------------------------------------------------------------------------------
 
-  wire [7:0]  wload_byte;
-  wire [15:0] wload_half;
-  wire [MP_DATA_WIDTH-1 : 0] wsigned;
-  wire [MP_DATA_WIDTH-1 : 0] wunsigned;
+  reg  [7:0]  wload_byte;
+  reg  [15:0] wload_half;
+  reg  [MP_DATA_WIDTH-1 : 0] wsigned;
+  reg  [MP_DATA_WIDTH-1 : 0] wunsigned;
 
   always @(*) begin : cproc_load_byte
     case(iop[1:0])
@@ -51,11 +51,11 @@ module loaddec
 
   always @(*) begin : cproc_unsigned
     case(ifunct3[0])
-      1'b0: wunsigned = `ZEROEXTEND(16, wload_half);
-      1'b1: wunsigned = `ZEROEXTEND(24, wload_byte);
+      1'b0: wunsigned = `ZEROEXTEND(24, wload_byte);
+      1'b1: wunsigned = `ZEROEXTEND(16, wload_half);
     endcase
   end
 
-  assign ordata = ifunct3[2] ? wsigned : wunsigned;
+  assign ordata = ifunct3[2] ? wunsigned : wsigned;
 
 endmodule : loaddec
