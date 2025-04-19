@@ -26,10 +26,10 @@ module data_mem
     LP_STORE_WORD = 2'b10;
 
   integer i;
-  // initial begin : init_regfile_ram
-  //   for(i = 0; i < MP_DEPTH; i = i + 1)
-  //     rram[i] = 0;
-  // end
+  initial begin : init_regfile_ram
+    for(i = 0; i < MP_DEPTH; i = i + 1)
+      rram[i] = 0;
+  end
 
   assign ordata = rram[`index];
 

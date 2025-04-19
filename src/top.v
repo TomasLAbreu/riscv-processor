@@ -16,7 +16,7 @@ module top #(
 
 	wire [1:0] winstr_m;
 
-	riscv_pipeline #(
+	riscv #(
 		.MP_DATA_WIDTH (MP_DATA_WIDTH),
 		.MP_ADDR_WIDTH (MP_ADDR_WIDTH)
 	) inst_riscvpipeline (
@@ -30,7 +30,7 @@ module top #(
 		.owdata_m      (owdata_m),
 		.irdata_m      (ordata_m)
 	);
-//OK
+
 	instr_mem #(
 		.MP_WIDTH (MP_DATA_WIDTH),
 		.MP_DEPTH (256)
@@ -38,7 +38,7 @@ module top #(
 		.ipos   (opcf),
 		.ordata (oinstr_f)
 	);
-//OK
+
 	data_mem #(
 		.MP_WIDTH (MP_DATA_WIDTH),
 		.MP_DEPTH (256)

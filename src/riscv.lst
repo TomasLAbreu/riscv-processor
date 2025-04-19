@@ -1,0 +1,15 @@
+../src/riscv_constants.vh
+../src/ctrl/riscv_ctrl_aludec.v
+../src/ctrl/riscv_ctrl_jumpdec.v
+../src/ctrl/riscv_ctrl_maindec.v
+../src/ctrl/riscv_ctrl.v
+../src/dp/riscv_dp_alu.v
+../src/dp/riscv_dp_extend_imm.v
+../src/dp/riscv_dp_loaddec.v
+../src/dp/riscv_dp_regfile.v
+../src/dp/riscv_dp.v
+../src/riscv_hazard_unit.v
+../src/dmem.v
+../src/imem.v
+../src/riscv.v
+../src/top.v

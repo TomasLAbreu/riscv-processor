@@ -1,11 +1,13 @@
 //------------------------------------------------------------------------------
-module riscv_pipeline
+module riscv
 //------------------------------------------------------------------------------
 #(
   parameter MP_DATA_WIDTH = 32,
   parameter MP_ADDR_WIDTH = 5
 )
 (
+	//TODO: parameterize instr* and PC
+	//TODO: change rst to rstn
   input wire                        iclk,
   input wire                        irst,
 
@@ -15,8 +17,8 @@ module riscv_pipeline
   output wire                       omem_write_m,
   output wire [MP_DATA_WIDTH-1 : 0] oalu_result_m,
 
-  input wire  [MP_DATA_WIDTH-1 : 0] irdata_m
-  output wire [MP_DATA_WIDTH-1 : 0] owdata_m,
+  input wire  [MP_DATA_WIDTH-1 : 0] irdata_m,
+  output wire [MP_DATA_WIDTH-1 : 0] owdata_m
 );
 //------------------------------------------------------------------------------
 
@@ -24,24 +26,24 @@ module riscv_pipeline
   wire [2:0] wresult_src_w;
   wire walu_src_e;
 
-  wire wreg_wr_w;
-  wire wreg_wr_m;
+  wire wreg_wr_wb;
+  wire wreg_wr_mem;
 
   wire wpc_result_src_e;
   wire [2:0] wimm_src_d;
   wire [3:0] walu_ctrl_e;
-  wire wresult_srcb0_e;
+  wire wresult_src_ex_b0;
 
   // ------ datapath outputs
-  wire [4:0] wrs1_d;
-  wire [4:0] wrs2_d;
-  wire [4:0] wrs1_e;
-  wire [4:0] wrs2_e;
-  wire [4:0] wrd_e;
-  wire wpc_src_e;
+  wire [4:0] wrs1_id;
+  wire [4:0] wrs2_id;
+  wire [4:0] wrs1_ex;
+  wire [4:0] wrs2_ex;
+  wire [4:0] wrd_ex;
+  wire wpc_src_ex;
 
-  wire [4:0] wrd_m;
-  wire [4:0] wrd_w;
+  wire [4:0] wrd_mem;
+  wire [4:0] wrd_wb;
 
   wire [31:0] winstr_d;
 
@@ -54,10 +56,10 @@ module riscv_pipeline
   // ------ hazard unit flags
   wire [1:0] whazard_forward_ae;
   wire [1:0] whazard_forward_be;
-  wire whazard_stall_f;
-  wire whazard_stall_d;
-  wire whazard_flush_d;
-  wire whazard_flush_e;
+  wire whazard_stall_if;
+  wire whazard_stall_id;
+  wire whazard_flush_id;
+  wire whazard_flush_ex;
 
   wire [6:0] wop_d;
   wire [2:0] wfunct3_d;
@@ -65,6 +67,15 @@ module riscv_pipeline
 
   // ============================================================================
   // riscv pipeline processor
+  // ============================================================================
+  //
+  // follows 5 cycle stages through a pipeline:
+  // 		if   	instruction fetch
+  // 		id   	instruction decode
+  // 		ex   	execute
+  // 		mem  	access data memory
+  // 		wb 		writeback
+  //
   // ============================================================================
 
   assign wop_d = winstr_d[6:0];
@@ -74,7 +85,7 @@ module riscv_pipeline
   controller u_ctrl (
     .iclk             (iclk),
     .irst             (irst),
-    .iflush_e         (whazard_flush_e),
+    .iflush_e         (whazard_flush_ex),
     .iop_d            (wop_d),
     .ifunct3_d        (wfunct3_d),
     .ifunct7b5_d      (wfunct7b5_d),
@@ -84,14 +95,14 @@ module riscv_pipeline
     .inegative_e      (walu_negative_e),
     .oresult_src_w    (wresult_src_w),
     .omem_write_m     (omem_write_m),
-    .opc_src_e        (wpc_src_e),
+    .opc_src_e        (wpc_src_ex),
     .oalu_src_e       (walu_src_e),
-    .oreg_write_w     (wreg_wr_w),
-    .oreg_write_m     (wreg_wr_m),
+    .oreg_write_w     (wreg_wr_wb),
+    .oreg_write_m     (wreg_wr_mem),
     .opc_result_src_e (wpc_result_src_e),
     .oimm_src_d       (wimm_src_d),
     .oalu_ctrl_e      (walu_ctrl_e),
-    .oresult_srcb0_e  (wresult_srcb0_e)
+    .oresult_srcb0_e  (wresult_src_ex_b0)
   );
 
   datapath #(
@@ -101,25 +112,25 @@ module riscv_pipeline
     .iclk             (iclk),
     .irst             (irst),
     .iresult_src_w    (wresult_src_w),
-    .ipc_src_e        (wpc_src_e),
+    .ipc_src_e        (wpc_src_ex),
     .ialu_src_e       (walu_src_e),
-    .ireg_wr_w        (wreg_wr_w),
+    .ireg_wr_w        (wreg_wr_wb),
     .iimm_src_d       (wimm_src_d),
     .ialu_ctrl_e      (walu_ctrl_e),
     .ipc_result_src_e (wpc_result_src_e),
     .iforward_ae      (whazard_forward_ae),
     .iforward_be      (whazard_forward_be),
-    .istall_f         (whazard_stall_f),
-    .istall_d         (whazard_stall_d),
-    .iflush_d         (whazard_flush_d),
-    .iflush_e         (whazard_flush_e),
-    .ors1_d           (wrs1_d),
-    .ors2_d           (wrs2_d),
-    .ors1_e           (wrs1_e),
-    .ors2_e           (wrs2_e),
-    .ord_e            (wrd_e),
-    .ord_m            (wrd_m),
-    .ord_w            (wrd_w),
+    .istall_f         (whazard_stall_if),
+    .istall_d         (whazard_stall_id),
+    .iflush_d         (whazard_flush_id),
+    .iflush_e         (whazard_flush_ex),
+    .ors1_d           (wrs1_id),
+    .ors2_d           (wrs2_id),
+    .ors1_e           (wrs1_ex),
+    .ors2_e           (wrs2_ex),
+    .ord_e            (wrd_ex),
+    .ord_m            (wrd_mem),
+    .ord_w            (wrd_wb),
     .oalu_zero_e      (walu_zero_e),
     .oalu_ovfl_e      (walu_overflow_e),
     .oalu_carry_e     (walu_carry_e),
@@ -133,24 +144,25 @@ module riscv_pipeline
     .oinstr2b_m       (oinstr_m)
   );
 
-  hazard_unit u_hazard_unit (
-    .irs1_decod           (wrs1_d),
-    .irs2_decod           (wrs2_d),
-    .irs1_exect           (wrs1_e),
-    .irs2_exect           (wrs2_e),
-    .ird_exect            (wrd_e),
-    .ipc_src_exect        (wpc_src_e),
-    .iresult_src_b0_exect (wresult_srcb0_e),
-    .ird_mem              (wrd_m),
-    .ird_wrt              (wrd_w),
-    .ireg_wr_mem          (wreg_wr_m),
-    .ireg_wr_wrt          (wreg_wr_w),
-    .oforward_ae          (whazard_forward_ae),
-    .oforward_be          (whazard_forward_be),
-    .ostall_fetch         (whazard_stall_f),
-    .ostall_decod         (whazard_stall_d),
-    .oflush_decod         (whazard_flush_d),
-    .oflush_exect         (whazard_flush_e)
-  );
+	hazard_unit u_hazard_unit (
+		.irs1_id           (wrs1_id),
+		.irs2_id           (wrs2_id),
+		.irs1_ex           (wrs1_ex),
+		.irs2_ex           (wrs2_ex),
+		.ird_ex            (wrd_ex),
+		.ipc_src_ex        (wpc_src_ex),
+		.iresult_src_ex_b0 (wresult_src_ex_b0),
+		.ird_mem           (wrd_mem),
+		.ird_wb            (wrd_wb),
+		.ireg_wr_mem       (wreg_wr_mem),
+		.ireg_wr_wb        (wreg_wr_wb),
+		.oforward_ae       (whazard_forward_ae),
+		.oforward_be       (whazard_forward_be),
+		.ostall_if         (whazard_stall_if),
+		.ostall_id         (whazard_stall_id),
+		.oflush_id         (whazard_flush_id),
+		.oflush_ex         (whazard_flush_ex)
+	);
+
 
 endmodule

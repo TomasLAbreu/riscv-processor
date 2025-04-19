@@ -1,7 +1,7 @@
-`include "alu_constants.vh"
+`include "riscv_constants.vh.vh"
 
 //------------------------------------------------------------------------------
-module aludec
+module riscv_ctrl_aludec
 //------------------------------------------------------------------------------
 (
   input wire        iop_b5,
@@ -30,24 +30,24 @@ module aludec
 
   assign wrtype_sub = ifunct7_b5 & iop_b5;
 
-  always @(*) begin : cproc_aludec
+  always @(*) begin : cproc_riscv_ctrl_aludec
     case (iop)
-      LP_ALUOP_TYPE_I:   octrl = `ADD_OP;
-      LP_ALUOP_TYPE_BEQ: octrl = `SUB_OP;
+      LP_ALUOP_TYPE_I:   octrl = `RISCV_ALU_ADD_OP;
+      LP_ALUOP_TYPE_BEQ: octrl = `RISCV_ALU_SUB_OP;
       default: begin
         case (ifunct3)
-          LP_ALUOP_ADD:  octrl = wrtype_sub ? `SUB_OP : `ADD_OP;
-          LP_ALUOP_SL:   octrl = `SL_OP;
-          LP_ALUOP_SLT:  octrl = `SLT_OP;
-          LP_ALUOP_SLTU: octrl = `SLTU_OP;
-          LP_ALUOP_XOR:  octrl = `XOR_OP;
-          LP_ALUOP_SR:   octrl = ifunct7_b5 ? `SRA_OP : `SR_OP;
-          LP_ALUOP_OR:   octrl = `OR_OP;
-          LP_ALUOP_AND:  octrl = `AND_OP;
-          default:       octrl = `NOP_OP;
+          LP_ALUOP_ADD:  octrl = wrtype_sub ? `RISCV_ALU_SUB_OP : `RISCV_ALU_ADD_OP;
+          LP_ALUOP_SL:   octrl = `RISCV_ALU_SL_OP;
+          LP_ALUOP_SLT:  octrl = `RISCV_ALU_SLT_OP;
+          LP_ALUOP_SLTU: octrl = `RISCV_ALU_SLTU_OP;
+          LP_ALUOP_XOR:  octrl = `RISCV_ALU_OR_OP;
+          LP_ALUOP_SR:   octrl = ifunct7_b5 ? `RISCV_ALU_SRA_OP : `RISCV_ALU_SR_OP;
+          LP_ALUOP_OR:   octrl = `RISCV_ALU_OR_OP;
+          LP_ALUOP_AND:  octrl = `RISCV_ALU_AND_OP;
+          default:       octrl = `RISCV_ALU_NOP_OP;
         endcase
       end
     endcase
   end
 
-endmodule : aludec
+endmodule : riscv_ctrl_aludec

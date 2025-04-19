@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-module datapath
+module riscv_dp
 //------------------------------------------------------------------------------
 #(
   parameter MP_DATA_WIDTH = 32,
@@ -11,10 +11,10 @@ module datapath
 
   input wire  [2:0]   iresult_src_w,
   input wire          ipc_src_e,
-  input wire          ialu_src_e,
+  input wire          iriscv_dp_alu_src_e,
   input wire          ireg_wr_w,
   input wire  [2:0]   iimm_src_d,
-  input wire  [3:0]   ialu_ctrl_e,
+  input wire  [3:0]   iriscv_dp_alu_ctrl_e,
   input wire          ipc_result_src_e,
 
   input wire  [1:0]   iforward_ae,
@@ -33,15 +33,15 @@ module datapath
   output reg  [4:0]   ord_w,
 
   // ALU flags
-  output wire         oalu_zero_e,
-  output wire         oalu_ovfl_e,
-  output wire         oalu_carry_e,
-  output wire         oalu_neg_e,
+  output wire         oriscv_dp_alu_zero_e,
+  output wire         oriscv_dp_alu_ovfl_e,
+  output wire         oriscv_dp_alu_carry_e,
+  output wire         oriscv_dp_alu_neg_e,
 
   output reg  [31:0]  opc_f,
   input wire  [31:0]  iinstr_f,
   output reg  [31:0]  oinstr_d,
-  output reg  [MP_DATA_WIDTH-1:0]  oalu_result_m,
+  output reg  [MP_DATA_WIDTH-1:0]  oriscv_dp_alu_result_m,
   output reg  [MP_DATA_WIDTH-1:0]  owdata_m,
   input wire  [MP_DATA_WIDTH-1:0]  imem_data_m,
   output wire [1 :0]  oinstr2b_m    //last 2 bits to be used on dmem
@@ -77,7 +77,7 @@ module datapath
 
   // pipeline Execute - Memory
   reg  [MP_DATA_WIDTH-1:0] wwdata_e;
-  wire [31:0] walu_result_e;
+  wire [31:0] wriscv_dp_alu_result_e;
   reg  [2:0]  rinstr_m;
   reg  [31:0] rimm_ext_m;
   reg  [31:0] rpc_result_m;
@@ -85,7 +85,7 @@ module datapath
 
   // pipeline Memory - Writeback
   reg  [31:0] rimm_ext_w;
-  reg  [31:0] ralu_result_w;
+  reg  [31:0] rriscv_dp_alu_result_w;
   reg  [MP_DATA_WIDTH-1:0] rrdata_w;
   reg  [31:0] rpc_result_w;
   reg  [31:0] rpc_plus4_w;
@@ -144,7 +144,7 @@ module datapath
   always @(posedge iclk) begin : sproc_pipeline_exec_mem
     if (irst) begin
       rinstr_m      <= {3{1'b0}};
-      oalu_result_m <= {MP_DATA_WIDTH{1'b0}};
+      oriscv_dp_alu_result_m <= {MP_DATA_WIDTH{1'b0}};
       owdata_m      <= {MP_DATA_WIDTH{1'b0}};
       rimm_ext_m    <= {32{1'b0}};
       ord_m         <= {5{1'b0}};
@@ -152,7 +152,7 @@ module datapath
       rpc_plus4_m   <= {32{1'b0}};
     end else begin
       rinstr_m      <= rinstr_e;
-      oalu_result_m <= walu_result_e;
+      oriscv_dp_alu_result_m <= wriscv_dp_alu_result_e;
       owdata_m      <= wwdata_e;
       rimm_ext_m    <= rimm_ext_e;
       ord_m         <= ord_e;
@@ -163,14 +163,14 @@ module datapath
 
   always @(posedge iclk) begin : sproc_pipeline_mem_writ
     if (irst) begin
-      ralu_result_w <= {MP_DATA_WIDTH{1'b0}};
+      rriscv_dp_alu_result_w <= {MP_DATA_WIDTH{1'b0}};
       rrdata_w      <= {MP_DATA_WIDTH{1'b0}};
       rimm_ext_w    <= {32{1'b0}};
       ord_w         <= {5{1'b0}};
       rpc_result_w  <= {32{1'b0}};
       rpc_plus4_w   <= {32{1'b0}};
     end else begin
-      ralu_result_w <= oalu_result_m;
+      rriscv_dp_alu_result_w <= oriscv_dp_alu_result_m;
       rrdata_w      <= wrdata_m;
       rimm_ext_w    <= rimm_ext_m;
       ord_w         <= ord_m;
@@ -187,7 +187,7 @@ module datapath
     case (iforward_ae)
       2'b00:   wsrc_a_e = rrd1_e;
       2'b01:   wsrc_a_e = wresult_w;
-      2'b10:   wsrc_a_e = oalu_result_m;
+      2'b10:   wsrc_a_e = oriscv_dp_alu_result_m;
       default: wsrc_a_e = wsrc_a_e;
     endcase
   end
@@ -196,13 +196,13 @@ module datapath
     case (iforward_be)
       2'b00:   wwdata_e = rrd2_e;
       2'b01:   wwdata_e = wresult_w;
-      2'b10:   wwdata_e = oalu_result_m;
+      2'b10:   wwdata_e = oriscv_dp_alu_result_m;
       default: wwdata_e = wwdata_e;
     endcase
   end
 
 //------------------------------------------------------------------------------
-// datapath
+// riscv_dp
 //------------------------------------------------------------------------------
 
   assign ors1_d = oinstr_d[19:15];
@@ -224,19 +224,19 @@ module datapath
   assign wpc_plus4_f = opc_f + 32'd4;
   assign wpc_target_e = rpc_e + rimm_ext_e;
 
-  assign wpc_result_e = ipc_result_src_e ? walu_result_e : wpc_target_e;
+  assign wpc_result_e = ipc_result_src_e ? wriscv_dp_alu_result_e : wpc_target_e;
   assign wpc_next_f = ipc_src_e ? wpc_result_e : wpc_plus4_f;
 
-  assign wsrc_b_e = ialu_src_e ? rimm_ext_e : wwdata_e;
+  assign wsrc_b_e = iriscv_dp_alu_src_e ? rimm_ext_e : wwdata_e;
 
 //------------------------------------------------------------------------------
 // block instantiation
 //------------------------------------------------------------------------------
 
-  regfile #(
+  riscv_dp_regfile #(
     .MP_DATA_WIDTH (MP_DATA_WIDTH),
     .MP_ADDR_WIDTH (MP_ADDR_WIDTH)
-  ) u_regfile (
+  ) u_riscv_dp_regfile (
     .iclk    (~iclk),
     .iwen3   (ireg_wr_w),
     .ia1     (ors1_d),
@@ -247,31 +247,31 @@ module datapath
     .ordata2 (wrd2_d)
   );
 
-  extend_imm extImm(
+  riscv_dp_extend_imm extImm(
     .iinstr (oinstr_d[31:7]),
     .isrc   (iimm_src_d),
     .oext   (wimm_ext_d)
   );
 
-  alu #(
+  riscv_dp_alu #(
     .MP_DATA_WIDTH (MP_DATA_WIDTH)
-  ) u_alu (
-    .ictrl     (ialu_ctrl_e),
+  ) u_riscv_dp_alu (
+    .ictrl     (iriscv_dp_alu_ctrl_e),
     .isrc_a    (wsrc_a_e),
     .isrc_b    (wsrc_b_e),
-    .oresult   (walu_result_e),
-    .ozero     (oalu_zero_e),
-    .ooverflow (oalu_ovfl_e),
-    .ocarry    (oalu_carry_e),
-    .onegative (oalu_neg_e)
+    .oresult   (wriscv_dp_alu_result_e),
+    .ozero     (oriscv_dp_alu_zero_e),
+    .ooverflow (oriscv_dp_alu_ovfl_e),
+    .ocarry    (oriscv_dp_alu_carry_e),
+    .onegative (oriscv_dp_alu_neg_e)
   );
 
-  loaddec #(
+  riscv_dp_loaddec #(
     .MP_DATA_WIDTH (MP_DATA_WIDTH)
-  ) u_loaddec (
+  ) u_riscv_dp_loaddec (
     .imem_data (imem_data_m),
     .ifunct3   (rinstr_m),
-    .iop       (oalu_result_m[1:0]),
+    .iop       (oriscv_dp_alu_result_m[1:0]),
     .ordata    (wrdata_m)
   );
 
@@ -279,8 +279,8 @@ module datapath
 
   always @(*) begin
     case(iresult_src_w)
-      3'b000: wresult_w = ralu_result_w;
-      3'b111: wresult_w = ralu_result_w;
+      3'b000: wresult_w = rriscv_dp_alu_result_w;
+      3'b111: wresult_w = rriscv_dp_alu_result_w;
       3'b001: wresult_w = rrdata_w;
       3'b010: wresult_w = rpc_plus4_w;
       3'b101: wresult_w = rpc_result_w;

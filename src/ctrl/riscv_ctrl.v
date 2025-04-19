@@ -1,4 +1,4 @@
-module controller (
+module riscv_ctrl (
   input             iclk,
   input             irst,
 
@@ -97,11 +97,11 @@ module controller (
   end
 
   // ============================================================================
-  // controller
+  // riscv_ctrl
   // ============================================================================
   assign oresult_srcb0_e = rresult_src_e[0];
 
-  jumpdec u_jumpdec (
+  riscv_ctrl_jumpdec u_riscv_ctrl_jumpdec (
     .iop       (rop_e),
     .ifunct3   (rfunct3_e),
     .izero     (izero_e),
@@ -111,7 +111,7 @@ module controller (
     .opc_src   (opc_src_e)
   );
 
-  maindec u_maindec (
+  riscv_ctrl_maindec u_riscv_ctrl_maindec (
     .iop            (iop_d),
     .oresult_src    (wresult_src_d),
     .omem_wr        (wmem_write_d),
@@ -122,7 +122,7 @@ module controller (
     .oalu_op        (walu_op_d)
   );
 
-  aludec u_aludec (
+  riscv_ctrl_aludec u_riscv_ctrl_aludec (
     .iop_b5     (iop_d[5]),
     .ifunct3    (ifunct3_d),
     .ifunct7_b5 (ifunct7b5_d),

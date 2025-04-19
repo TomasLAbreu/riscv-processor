@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-module regfile
+module riscv_dp_regfile
 //------------------------------------------------------------------------------
 #(
   parameter MP_DATA_WIDTH = 32,
@@ -24,7 +24,7 @@ module regfile
   reg [MP_DATA_WIDTH-1 : 0] rram [LP_REG_NUM-1 : 0];
 
   integer i;
-  initial begin : init_regfile_ram
+  initial begin : init_riscv_dp_regfile_ram
     for(i = 0; i < LP_REG_NUM; i = i + 1)
       rram[i] = 0;
   end
@@ -38,4 +38,4 @@ module regfile
   assign ordata1 = (ia1 != 0) ? rram[ia1] : 0;
   assign ordata2 = (ia2 != 0) ? rram[ia2] : 0;
 
-endmodule : regfile
+endmodule : riscv_dp_regfile

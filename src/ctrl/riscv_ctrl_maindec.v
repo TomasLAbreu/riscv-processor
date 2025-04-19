@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-module maindec
+module riscv_ctrl_maindec
 //------------------------------------------------------------------------------
 (
   input wire  [6:0] iop,
@@ -50,7 +50,7 @@ module maindec
 
   assign {oreg_wr,oimm_src,oalu_src,omem_wr,oresult_src,oalu_op,opc_result_src} = wctrls;
 
-  always @(*) begin : cproc_maindec
+  always @(*) begin : cproc_riscv_ctrl_maindec
     case (iop)
       LP_OP_LOAD:     wctrls = LP_OP_CTRL_LOAD;
       LP_OP_STORE:    wctrls = LP_OP_CTRL_STORE;
@@ -65,4 +65,4 @@ module maindec
     endcase
   end
 
-endmodule : maindec
+endmodule : riscv_ctrl_maindec

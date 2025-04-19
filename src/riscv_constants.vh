@@ -1,0 +1,19 @@
+`ifndef __RISCV_CONSTANTS_VH__
+`define __RISCV_CONSTANTS_VH__
+
+`define RISCV_ALU_ADD_OP 	4'b0000
+`define RISCV_ALU_SUB_OP 	4'b0001
+`define RISCV_ALU_AND_OP 	4'b0010
+`define RISCV_ALU_OR_OP 	4'b0011
+`define RISCV_ALU_SLT_OP 	4'b0101
+`define RISCV_ALU_SLTU_OP	4'b1101
+
+`define RISCV_ALU_OR_OP  4'b0110
+`define RISCV_ALU_SL_OP   4'b0111
+`define RISCV_ALU_SR_OP   4'b1000
+`define RISCV_ALU_SRA_OP  4'b1001
+
+`define RISCV_ALU_NOP_OP  4'bxxxx
+
+`endif // __RISCV_CONSTANTS_VH__
+

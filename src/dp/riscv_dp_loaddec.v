@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-module loaddec
+module riscv_dp_loaddec
 //------------------------------------------------------------------------------
 #(
   parameter MP_DATA_WIDTH = 32
@@ -58,4 +58,4 @@ module loaddec
 
   assign ordata = ifunct3[2] ? wunsigned : wsigned;
 
-endmodule : loaddec
+endmodule : riscv_dp_loaddec

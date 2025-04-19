@@ -1,4 +1,4 @@
-module extend_imm (
+module riscv_dp_extend_imm (
   input wire  [31:7]  iinstr,
   input wire  [2:0]   isrc,
   output reg  [31:0]  oext

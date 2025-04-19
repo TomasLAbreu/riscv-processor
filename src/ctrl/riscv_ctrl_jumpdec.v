@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-module jumpdec
+module riscv_ctrl_jumpdec
 //------------------------------------------------------------------------------
 (
   input wire  [6:0] iop,
@@ -27,7 +27,7 @@ module jumpdec
     LP_OP_BLTU = 3'b110, // less then (unsigned)
     LP_OP_BGEU = 3'b111; // bigger or equal (unsigned)
 
-  always @(*) begin : cproc_jumpdec
+  always @(*) begin : cproc_riscv_ctrl_jumpdec
     case (iop)
       LP_OP_B:
         case (ifunct3)
@@ -45,4 +45,4 @@ module jumpdec
     endcase
   end
 
-endmodule : jumpdec
+endmodule : riscv_ctrl_jumpdec
