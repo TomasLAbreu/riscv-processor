@@ -28,12 +28,12 @@ top #(
 ) inst_top (
 	.iclk         (clk),
 	.irst         (reset),
-	.opcf         (PCF),
-	.oinstr_f     (InstrF),
-	.omem_wr_m    (MemWrite),
-	.odata_addr_m (DataAdr),
-	.owdata_m     (WriteData),
-	.ordata_m     (ReadData)
+	.oinstr       (InstrF),
+	.opc          (PCF),
+	.odmem_addr 			  (DataAdr),
+	.odmem_wr_en       (MemWrite),
+	.odmem_wr_data     (WriteData),
+	.odmem_rd_data     (ReadData)
 );
 
 initial begin

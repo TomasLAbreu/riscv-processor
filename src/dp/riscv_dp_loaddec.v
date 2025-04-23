@@ -5,11 +5,11 @@ module riscv_dp_loaddec
   parameter MP_DATA_WIDTH = 32
 )
 (
-  input  wire [MP_DATA_WIDTH-1 : 0] imem_data,
+  input  wire [MP_DATA_WIDTH-1 : 0] idata,
   input  wire [2:0]                 ifunct3,
   input  wire [1:0]                 iop,
 
-  output wire [MP_DATA_WIDTH-1 : 0] ordata
+  output wire [MP_DATA_WIDTH-1 : 0] odata_dec
 );
 //------------------------------------------------------------------------------
 
@@ -20,19 +20,19 @@ module riscv_dp_loaddec
 
   always @(*) begin : cproc_load_byte
     case(iop[1:0])
-      2'b00: wload_byte = imem_data[7:0];
-      2'b01: wload_byte = imem_data[15:8];
-      2'b10: wload_byte = imem_data[23:16];
-      2'b11: wload_byte = imem_data[31:24];
+      2'b00: wload_byte = idata[7:0];
+      2'b01: wload_byte = idata[15:8];
+      2'b10: wload_byte = idata[23:16];
+      2'b11: wload_byte = idata[31:24];
     endcase
   end
 
   always @(*) begin : cproc_load_half
     case(iop[1:0])
-      2'b00: wload_half = imem_data[15:0];
-      2'b01: wload_half = imem_data[23:8];
-      2'b10: wload_half = imem_data[31:16];
-      2'b11: wload_half = {imem_data[7:0], imem_data[31:24]};
+      2'b00: wload_half = idata[15:0];
+      2'b01: wload_half = idata[23:8];
+      2'b10: wload_half = idata[31:16];
+      2'b11: wload_half = {idata[7:0], idata[31:24]};
     endcase
   end
 
@@ -42,7 +42,7 @@ module riscv_dp_loaddec
     case(ifunct3[1:0])
       2'b00: wsigned = `SIGNEXTEND(24, wload_byte[7], wload_byte);
       2'b01: wsigned = `SIGNEXTEND(16, wload_half[15], wload_half);
-      2'b10: wsigned = imem_data; // lw
+      2'b10: wsigned = idata; // lw
       default: wsigned = wsigned;
     endcase
   end
@@ -56,6 +56,6 @@ module riscv_dp_loaddec
     endcase
   end
 
-  assign ordata = ifunct3[2] ? wunsigned : wsigned;
+  assign odata_dec = ifunct3[2] ? wunsigned : wsigned;
 
 endmodule : riscv_dp_loaddec

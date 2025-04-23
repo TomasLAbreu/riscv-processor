@@ -6,49 +6,50 @@ module top #(
 	input wire												iclk,
 	input wire												irst,
 
-	output wire	[31:0]								opcf,
-	output wire	[31:0]								oinstr_f,
-	output wire												omem_wr_m,
-	output wire	[31:0]								odata_addr_m,
-	output wire	[MP_DATA_WIDTH-1 : 0]	owdata_m,
-	output wire	[MP_DATA_WIDTH-1 : 0]	ordata_m
+	output wire	[31:0]								opc,
+	output wire	[31:0]								oinstr,
+	output wire												odmem_wr_en,
+	output wire	[31:0]								odmem_addr,
+	output wire	[MP_DATA_WIDTH-1 : 0]	odmem_wr_data,
+	output wire	[MP_DATA_WIDTH-1 : 0]	odmem_rd_data
 );
 
-	wire [1:0] winstr_m;
+	wire [1:0] wdmem_wr_be;
 
 	riscv #(
 		.MP_DATA_WIDTH (MP_DATA_WIDTH),
 		.MP_ADDR_WIDTH (MP_ADDR_WIDTH)
-	) inst_riscvpipeline (
+	) u_riscvp (
 		.iclk          (iclk),
 		.irst          (irst),
-		.opcf          (opcf),
-		.iinstr_f      (oinstr_f),
-		.oinstr_m      (winstr_m),
-		.omem_write_m  (omem_wr_m),
-		.oalu_result_m (odata_addr_m),
-		.owdata_m      (owdata_m),
-		.irdata_m      (ordata_m)
+		.iinstr        (oinstr),
+		.opc           (opc),
+		.odmem_addr    (odmem_addr),
+		.odmem_wr_be   (wdmem_wr_be),
+		.odmem_wr_en   (odmem_wr_en),
+		.odmem_wr_data (odmem_wr_data),
+		.idmem_rd_data (odmem_rd_data)
 	);
 
 	instr_mem #(
-		.MP_WIDTH (MP_DATA_WIDTH),
-		.MP_DEPTH (256)
+		.MP_DATA_WIDTH (MP_DATA_WIDTH),
+		.MP_ADDR_WIDTH (8)
 	) u_imem (
-		.ipos   (opcf),
-		.ordata (oinstr_f)
+		.iaddr  (opc),
+		.ordata (oinstr)
 	);
 
+	// TODO: this should receive data+addr params only...
 	data_mem #(
-		.MP_WIDTH (MP_DATA_WIDTH),
-		.MP_DEPTH (256)
+		.MP_DATA_WIDTH (MP_DATA_WIDTH),
+		.MP_ADDR_WIDTH (8)
 	) u_dmem (
 		.iclk   (iclk),
-		.ipos   (odata_addr_m),
-		.iwen   (omem_wr_m),
-		.ibe    (winstr_m),
-		.iwdata (owdata_m),
-		.ordata (ordata_m)
+		.iaddr  (odmem_addr[7:0]), // TODO: check this out
+		.iwen   (odmem_wr_en),
+		.ibe    (wdmem_wr_be),
+		.iwdata (odmem_wr_data),
+		.ordata (odmem_rd_data)
 	);
 
 endmodule

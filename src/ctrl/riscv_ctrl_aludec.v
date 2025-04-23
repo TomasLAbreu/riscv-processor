@@ -1,4 +1,4 @@
-`include "riscv_constants.vh.vh"
+`include "riscv_constants.vh"
 
 //------------------------------------------------------------------------------
 module riscv_ctrl_aludec
@@ -40,7 +40,7 @@ module riscv_ctrl_aludec
           LP_ALUOP_SL:   octrl = `RISCV_ALU_SL_OP;
           LP_ALUOP_SLT:  octrl = `RISCV_ALU_SLT_OP;
           LP_ALUOP_SLTU: octrl = `RISCV_ALU_SLTU_OP;
-          LP_ALUOP_XOR:  octrl = `RISCV_ALU_OR_OP;
+          LP_ALUOP_XOR:  octrl = `RISCV_ALU_XOR_OP;
           LP_ALUOP_SR:   octrl = ifunct7_b5 ? `RISCV_ALU_SRA_OP : `RISCV_ALU_SR_OP;
           LP_ALUOP_OR:   octrl = `RISCV_ALU_OR_OP;
           LP_ALUOP_AND:  octrl = `RISCV_ALU_AND_OP;

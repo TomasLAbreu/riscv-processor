@@ -2,32 +2,34 @@
 module data_mem
 //------------------------------------------------------------------------------
 #(
-  parameter MP_WIDTH = 32,
-  parameter MP_DEPTH = 256
+  parameter MP_DATA_WIDTH = 32,
+  parameter MP_ADDR_WIDTH = 8
 )
 (
-  input wire                    iclk,
+  input wire                        iclk,
+  input wire  [MP_ADDR_WIDTH-1 : 0] iaddr,  // memory position to access/index
 
-  input wire  [MP_WIDTH-1 : 0]  ipos,   // memory position to access/index
-
-  input wire                    iwen,   // write enable
-  input wire  [1:0]             ibe,    // byte enable //<<<<<<<<<<<< add param?
-  input wire  [MP_WIDTH-1 : 0]  iwdata, // write data
-  output wire [MP_WIDTH-1 : 0]  ordata  // read data
+  input wire                        iwen,   // write enable
+  input wire  [1:0]                 ibe,    // byte enable //<<<<<<<<<<<< add param?
+  input wire  [MP_DATA_WIDTH-1 : 0] iwdata, // write data
+  output wire [MP_DATA_WIDTH-1 : 0] ordata  // read data
 );
 //------------------------------------------------------------------------------
-  reg [MP_WIDTH-1 : 0] rram [MP_DEPTH-1 : 0];
+  // truncate out the bits that define store type
+  `define index iaddr[MP_ADDR_WIDTH-1 : 2]
 
-`define index ipos[MP_WIDTH-1 : 2]
+  localparam LP_DEPTH = 2**MP_ADDR_WIDTH;
 
   localparam [1:0]
     LP_STORE_BYTE = 2'b00,
     LP_STORE_HALF = 2'b01, // half word
     LP_STORE_WORD = 2'b10;
 
+  reg [MP_DATA_WIDTH-1 : 0] rram [LP_DEPTH-1 : 0];
+
   integer i;
   initial begin : init_regfile_ram
-    for(i = 0; i < MP_DEPTH; i = i + 1)
+    for(i = 0; i < LP_DEPTH; i = i + 1)
       rram[i] = 0;
   end
 
@@ -37,14 +39,14 @@ module data_mem
     if (iwen) begin
       case(ibe)
         LP_STORE_BYTE:
-          case(ipos[1:0])
+          case(iaddr[1:0])
             2'b00: rram[`index][7:0]   <= iwdata[7:0]; //<<<<<<<<<<<< rewrite this with generate
             2'b01: rram[`index][15:8]  <= iwdata[7:0];
             2'b10: rram[`index][23:16] <= iwdata[7:0];
             2'b11: rram[`index][31:24] <= iwdata[7:0];
           endcase
         LP_STORE_HALF:
-          case(ipos[1:0])
+          case(iaddr[1:0])
             2'b00: rram[`index][15:0]  <= iwdata[15:0];
             2'b01: rram[`index][23:8]  <= iwdata[15:0];
             2'b10: rram[`index][31:16] <= iwdata[15:0];

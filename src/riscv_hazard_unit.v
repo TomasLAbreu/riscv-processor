@@ -20,7 +20,7 @@ module riscv_hazard_unit
 	input wire				ireg_wr_mem,
 	input wire				ireg_wr_wb,
 
-	output reg	[1:0]	oforward_ae,
+	output reg 	[1:0]	oforward_ae,
 	output reg	[1:0]	oforward_be,
 
 	output wire				ostall_if,
@@ -51,6 +51,14 @@ module riscv_hazard_unit
 
 	assign ostall_if = wstall_lw;
 	assign ostall_id = wstall_lw;
+
+	`define CHECK(_rs_, _rd_, _wr_en_) ((_rs_ == _rd_) & (_rs_ != 0) & _wr_en_)
+
+	// assign oforward_ae[1] = `CHECK(irs1_ex, ird_mem, ireg_wr_mem);
+	// assign oforward_ae[0] = `CHECK(irs1_ex, ird_wb, ireg_wr_wb);
+
+	// assign oforward_be[1] = `CHECK(irs_ex, ird_mem, ireg_wr_mem);
+	// assign oforward_be[0] = `CHECK(irs_ex, ird_wb, ireg_wr_wb);
 
 	always @(*) begin : cproc_forward_ae
 		if (((irs1_ex == ird_mem) & ireg_wr_mem) & (irs1_ex != 0)) begin

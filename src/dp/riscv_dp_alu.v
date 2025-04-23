@@ -1,26 +1,27 @@
-`include "riscv_dp_riscv_constants.vh.vh"
+`include "riscv_constants.vh"
 
 //------------------------------------------------------------------------------
 module riscv_dp_alu
 //------------------------------------------------------------------------------
 #(
-  parameter MP_DATA_WIDTH = 32
+  parameter MP_DATA_WIDTH = 32,
+  parameter MP_ENDIANESS = `RISCV_BIG_ENDIAN
 )
 (
-  input wire signed [3:0]                  ictrl,
-
-  input wire signed [MP_DATA_WIDTH-1 : 0]  isrc_a,
-  input wire        [MP_DATA_WIDTH-1 : 0]  isrc_b,
-
-  output wire                              ozero,
-  output wire                              ooverflow,
-  output wire                              ocarry,
-  output wire                              onegative,
-  output reg        [MP_DATA_WIDTH-1 : 0]  oresult
+  input wire        [3:0]                 ictrl,
+  input wire signed [MP_DATA_WIDTH-1 : 0] isrc_a,
+  input wire        [MP_DATA_WIDTH-1 : 0] isrc_b,
+  // ALU flags
+  output wire                             ozero,
+  output wire                             ooverflow,
+  output wire                             ocarry,
+  output wire                             onegative,
+  output reg        [MP_DATA_WIDTH-1 : 0] oresult
 );
 //------------------------------------------------------------------------------
 
-  localparam LP_LSB = MP_DATA_WIDTH-1;
+  // assume little endian as default
+  localparam LP_LSB = (MP_ENDIANESS == `RISCV_BIG_ENDIAN) ? (MP_DATA_WIDTH-1) : 0;
 
   wire [MP_DATA_WIDTH-1 : 0] wsum;
   wire [MP_DATA_WIDTH-1 : 0] winv_result;
@@ -35,7 +36,7 @@ module riscv_dp_alu
   assign waux2 = (isrc_a[LP_LSB] ^ wsum[LP_LSB]);
 
   // ALU flags
-  assign ozero     = (oresult == {32{1'b0}});
+  assign ozero     = (oresult == {MP_DATA_WIDTH{1'b0}});
   assign onegative = oresult[LP_LSB];
   assign ocarry    = ~ictrl[1] & wcarry_out;
   assign ooverflow = ~ictrl[1] & waux1 & waux2;
@@ -48,12 +49,12 @@ module riscv_dp_alu
       `RISCV_ALU_OR_OP  : oresult = isrc_a | isrc_b;
       `RISCV_ALU_SLT_OP : oresult = {{MP_DATA_WIDTH-1{1'b0}}, ooverflow ^ wsum[LP_LSB]};
       `RISCV_ALU_SLTU_OP: oresult = {{MP_DATA_WIDTH-1{1'b0}}, ~ocarry};
-      `RISCV_ALU_OR_OP : oresult = isrc_a ^ isrc_b;
-      `RISCV_ALU_SL_OP  : oresult = isrc_a << isrc_b[4:0];
+      `RISCV_ALU_XOR_OP : oresult = isrc_a ^ isrc_b;
+      `RISCV_ALU_SL_OP  : oresult = isrc_a << isrc_b[4:0];// TODO: why 4:0 - not paramaeterizable
       `RISCV_ALU_SR_OP  : oresult = isrc_a >> isrc_b[4:0];
       `RISCV_ALU_SRA_OP : oresult = isrc_a >>> isrc_b[4:0];
       default:  oresult = oresult;
     endcase
-   end
+  end
 
 endmodule : riscv_dp_alu

@@ -17,7 +17,7 @@ sim_dir  = $(proj_dir)/sim/testbench
 work_dir = $(proj_dir)/WORK
 
 #-------------------------------------------------------------------------------
-rtl_src = -f $(rtl_dir)/riscv_pipeline.lst
+rtl_src = -f $(rtl_dir)/riscv.lst
 rtl_src+= --include $(rtl_dir)
 # rtl_src+= --define my_macro=1
 

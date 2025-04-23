@@ -1,12 +1,13 @@
 ## HW
-riscv-processor
+riscv-processor - use IF,ID,EX,MEM,WB for the 5 stage riscv pipeline names
 dmem
 imem
+fifo,lintc,axim,axis (move from mthesis)
+spi?
+fpu,mmu
 UVM Testbench
-axi-master
-axi-slave
 regbank
-interface to linux
+accelerator, interface to linux
 
 ## SW
 compiler - compile only the defined cmds by riscvp
