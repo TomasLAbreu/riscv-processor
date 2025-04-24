@@ -40,35 +40,35 @@ module riscv
 //------------------------------------------------------------------------------
 
   // ------ controler outputs
-  wire [2:0] wresult_src;
-  wire walu_src;
+  wire [2:0] wctrl_result_src;
+  wire wctrl_alu_src;
 
-  wire wregfile_wr_en3;
-  wire wreg_wr_mem;
+  wire wctrl_regfile_wr_en3;
+  wire wctrl_reg_wr_mem;
 
-  wire wpc_result_src;
-  wire [2:0] wimm_src;
-  wire [3:0] walu_ctrl;
-  wire wresult_src_ex_b0;
+  wire wctrl_pc_result_src;
+  wire [2:0] wctrl_imm_src;
+  wire [3:0] wctrl_alu_ctrl;
+  wire wctrl_result_srcb0;
 
   // ------ datapath outputs
-  wire [4:0] wregfile_addr1;
-  wire [4:0] wregfile_addr2;
-  wire [4:0] wregfile_addr1_1d;
-  wire [4:0] wregfile_addr2_1d;
-  wire [4:0] wrd_ex;
-  wire wpc_src;
+  wire [4:0] wdp_regfile_addr1;
+  wire [4:0] wdp_regfile_addr2;
+  wire [4:0] wdp_regfile_addr1_1d;
+  wire [4:0] wdp_regfile_addr2_1d;
+  wire [4:0] wdp_rd_ex;
+  wire wctrl_pc_src;
 
-  wire [4:0] wrd_mem;
-  wire [4:0] wregfile_addr3;
+  wire [4:0] wdp_rd_mem;
+  wire [4:0] wdp_regfile_addr3;
 
-  wire [31:0] winstr;
+  wire [31:0] wdp_instr;
 
   // ALU flags
-  wire walu_zero;
-  wire walu_ovfl;
-  wire walu_carry;
-  wire walu_neg;
+  wire wdp_alu_zero;
+  wire wdp_alu_ovfl;
+  wire wdp_alu_carry;
+  wire wdp_alu_neg;
 
   // ------ hazard unit flags
   wire [1:0] whazard_forward_ae;
@@ -78,92 +78,89 @@ module riscv
   wire whazard_flush_id;
   wire whazard_flush_ex;
 
-  wire [6:0] wop_d;
-  wire [2:0] wfunct3_d;
-  wire wfunct7b5_d;
+  wire [6:0] wop;
+  wire [2:0] wfunct3;
+  wire wfunct7b5;
 
-  assign wop_d = winstr[6:0];
-  assign wfunct3_d = winstr[14:12];
-  assign wfunct7b5_d = winstr[30];
+  assign wop = wdp_instr[6:0];
+  assign wfunct3 = wdp_instr[14:12];
+  assign wfunct7b5 = wdp_instr[30];
 
   riscv_ctrl u_ctrl (
     .iclk             (iclk),
     .irst             (irst),
     .iflush_e         (whazard_flush_ex),
-    .iop_d            (wop_d),
-    .ifunct3_d        (wfunct3_d),
-    .ifunct7b5_d      (wfunct7b5_d),
-
-    .oalu_src         (walu_src),
-    .oalu_ctrl        (walu_ctrl),
-    .ialu_zero        (walu_zero),
-    .ialu_ovfl        (walu_ovfl),
-    .ialu_carry       (walu_carry),
-    .ialu_neg         (walu_neg),
-    .oresult_src      (wresult_src),
-
+    .iop              (wop),
+    .ifunct3          (wfunct3),
+    .ifunct7b5        (wfunct7b5),
+    .oalu_src         (wctrl_alu_src),
+    .oalu_ctrl        (wctrl_alu_ctrl),
+    .ialu_zero        (wdp_alu_zero),
+    .ialu_ovfl        (wdp_alu_ovfl),
+    .ialu_carry       (wdp_alu_carry),
+    .ialu_neg         (wdp_alu_neg),
+    .oresult_src_2d   (wctrl_result_src),
+    .oresult_srcb0    (wctrl_result_srcb0),
     .odmem_wr_en      (odmem_wr_en),
-    .opc_src          (wpc_src),
-    .oreg_write_w     (wregfile_wr_en3),
-    .oreg_write_m     (wreg_wr_mem),
-    .opc_result_src   (wpc_result_src),
-    .oimm_src         (wimm_src),
-    .oresult_srcb0_e  (wresult_src_ex_b0)
+    .oreg_write       (wctrl_reg_wr_mem),
+    .oreg_write_1d    (wctrl_regfile_wr_en3),
+    .opc_src          (wctrl_pc_src),
+    .opc_result_src   (wctrl_pc_result_src),
+    .oimm_src         (wctrl_imm_src)
   );
 
   riscv_dp #(
     .MP_DATA_WIDTH (MP_DATA_WIDTH),
     .MP_ADDR_WIDTH (MP_ADDR_WIDTH),
-    .MP_ENDIANESS  (MP_ENDIANESS),
+    .MP_ENDIANESS  (MP_ENDIANESS)
   ) u_datapath (
-    .iclk             (iclk),
-    .irst             (irst),
-    .iresult_src      (wresult_src),
-    .iimm_src         (wimm_src),
-    .ipc_src          (wpc_src),
-    .ipc_result_src   (wpc_result_src),
-    .iforward_ae      (whazard_forward_ae),
-    .iforward_be      (whazard_forward_be),
-    .istall_f         (whazard_stall_if),
-    .istall_d         (whazard_stall_id),
-    .iflush_d         (whazard_flush_id),
-    .iflush_e         (whazard_flush_ex),
-    .oregfile_addr1    (wregfile_addr1),
-    .oregfile_addr2    (wregfile_addr2),
-    .oregfile_addr1_1d (wregfile_addr1_1d),
-    .oregfile_addr2_1d (wregfile_addr2_1d),
-    .iregfile_wr_en3   (wregfile_wr_en3),
-    .oregfile_addr3    (wregfile_addr3),
-    .ord_e            (wrd_ex),
-    .ord_m            (wrd_mem),
-    .ialu_ctrl        (walu_ctrl),
-    .ialu_src         (walu_src),
-    .oalu_result      (odmem_addr),
-    .oalu_zero        (walu_zero),
-    .oalu_ovfl        (walu_ovfl),
-    .oalu_carry       (walu_carry),
-    .oalu_neg         (walu_neg),
-    .opc              (opc),
-    //
-    .iinstr_nxt       (iinstr),
-    .oinstr           (winstr),
-    .odmem_wr_data    (odmem_wr_data),
-    .idmem_rd_data    (idmem_rd_data),
-    .odmem_wr_be      (odmem_wr_be)
+    .iclk              (iclk),
+    .irst              (irst),
+    .iforward_ae       (whazard_forward_ae),
+    .iforward_be       (whazard_forward_be),
+    .istall_f          (whazard_stall_if),
+    .istall_d          (whazard_stall_id),
+    .iflush_d          (whazard_flush_id),
+    .iflush_e          (whazard_flush_ex),
+    .iinstr_nxt        (iinstr),
+    .oinstr            (wdp_instr),
+    .ipc_src           (wctrl_pc_src),
+    .ipc_result_src    (wctrl_pc_result_src),
+    .opc               (opc),
+    .iimm_src          (wctrl_imm_src),
+    .oregfile_addr1    (wdp_regfile_addr1),
+    .oregfile_addr2    (wdp_regfile_addr2),
+    .oregfile_addr1_1d (wdp_regfile_addr1_1d),
+    .oregfile_addr2_1d (wdp_regfile_addr2_1d),
+    .iregfile_wr_en3   (wctrl_regfile_wr_en3),
+    .iresult_src       (wctrl_result_src),
+    .oregfile_addr3    (wdp_regfile_addr3),
+    .ord_e             (wdp_rd_ex),
+    .ord_m             (wdp_rd_mem),
+    .ialu_ctrl         (wctrl_alu_ctrl),
+    .ialu_src          (wctrl_alu_src),
+    .oalu_result       (odmem_addr),
+    .oalu_zero         (wdp_alu_zero),
+    .oalu_ovfl         (wdp_alu_ovfl),
+    .oalu_carry        (wdp_alu_carry),
+    .oalu_neg          (wdp_alu_neg),
+    .odmem_wr_data     (odmem_wr_data),
+    .idmem_rd_data     (idmem_rd_data),
+    .odmem_wr_be       (odmem_wr_be)
   );
 
 	riscv_hazard_unit u_hazard_unit (
-		.irs1_id           (wregfile_addr1),
-		.irs2_id           (wregfile_addr2),
-		.irs1_ex           (wregfile_addr1_1d),
-		.irs2_ex           (wregfile_addr2_1d),
-		.ird_ex            (wrd_ex),
-		.ipc_src_ex        (wpc_src),
-		.iresult_src_ex_b0 (wresult_src_ex_b0),
-		.ird_mem           (wrd_mem),
-		.ird_wb            (wregfile_addr3),
-		.ireg_wr_mem       (wreg_wr_mem),
-		.ireg_wr_wb        (wregfile_wr_en3),
+		.irs1_id           (wdp_regfile_addr1),
+		.irs2_id           (wdp_regfile_addr2),
+		.irs1_ex           (wdp_regfile_addr1_1d),
+		.irs2_ex           (wdp_regfile_addr2_1d),
+		.ird_ex            (wdp_rd_ex),
+		.ipc_src_ex        (wctrl_pc_src),
+		.iresult_src_ex_b0 (wctrl_result_srcb0),
+		.ird_mem           (wdp_rd_mem),
+		.ird_wb            (wdp_regfile_addr3),
+		.ireg_wr_mem       (wctrl_reg_wr_mem),
+		.ireg_wr_wb        (wctrl_regfile_wr_en3),
 		.oforward_ae       (whazard_forward_ae),
 		.oforward_be       (whazard_forward_be),
 		.ostall_if         (whazard_stall_if),

@@ -4,12 +4,12 @@ module riscv_ctrl_maindec
 (
   input wire  [6:0] iop,
 
-  output wire [2:0] oresult_src,
-  output wire       omem_wr,
+  output wire [2:0] oresult_src, // selects result for regfile addr3
+  output wire       odmem_wr_en,
   output wire       oalu_src,
   output wire       oreg_wr,
 
-  output wire       opc_result_src, // selects PC between ALUResult and (PC+ImmExt)
+  output wire       opc_result_src, // selects between ALUResult and (PC+ImmExt)
   output wire [2:0] oimm_src,
   output wire [1:0] oalu_op
 );
@@ -48,9 +48,9 @@ module riscv_ctrl_maindec
 
   reg [11:0] wctrls;
 
-  assign {oreg_wr,oimm_src,oalu_src,omem_wr,oresult_src,oalu_op,opc_result_src} = wctrls;
+  assign {oreg_wr,oimm_src,oalu_src,odmem_wr_en,oresult_src,oalu_op,opc_result_src} = wctrls;
 
-  always @(*) begin : cproc_riscv_ctrl_maindec
+  always @(*) begin : cproc_maindec
     case (iop)
       LP_OP_LOAD:     wctrls = LP_OP_CTRL_LOAD;
       LP_OP_STORE:    wctrls = LP_OP_CTRL_STORE;

@@ -4,15 +4,15 @@
 module riscv_ctrl_aludec
 //------------------------------------------------------------------------------
 (
+  input wire  [1:0] ialu_op,
+
   input wire        iop_b5,
   input wire  [2:0] ifunct3,
   input wire        ifunct7_b5,
-  input wire  [1:0] iop,
-  output reg  [3:0] octrl
+
+  output reg  [3:0] oalu_ctrl
 );
 //------------------------------------------------------------------------------
-
-  wire wrtype_sub;
 
   localparam [1:0]
     LP_ALUOP_TYPE_I   = 2'b00,
@@ -28,23 +28,21 @@ module riscv_ctrl_aludec
     LP_ALUOP_OR   = 3'b110,
     LP_ALUOP_AND  = 3'b111;
 
-  assign wrtype_sub = ifunct7_b5 & iop_b5;
-
-  always @(*) begin : cproc_riscv_ctrl_aludec
-    case (iop)
-      LP_ALUOP_TYPE_I:   octrl = `RISCV_ALU_ADD_OP;
-      LP_ALUOP_TYPE_BEQ: octrl = `RISCV_ALU_SUB_OP;
+  always @(*) begin : cproc_aludec
+    case (ialu_op)
+      LP_ALUOP_TYPE_I:   oalu_ctrl = `RISCV_ALU_ADD_OP;
+      LP_ALUOP_TYPE_BEQ: oalu_ctrl = `RISCV_ALU_SUB_OP;
       default: begin
         case (ifunct3)
-          LP_ALUOP_ADD:  octrl = wrtype_sub ? `RISCV_ALU_SUB_OP : `RISCV_ALU_ADD_OP;
-          LP_ALUOP_SL:   octrl = `RISCV_ALU_SL_OP;
-          LP_ALUOP_SLT:  octrl = `RISCV_ALU_SLT_OP;
-          LP_ALUOP_SLTU: octrl = `RISCV_ALU_SLTU_OP;
-          LP_ALUOP_XOR:  octrl = `RISCV_ALU_XOR_OP;
-          LP_ALUOP_SR:   octrl = ifunct7_b5 ? `RISCV_ALU_SRA_OP : `RISCV_ALU_SR_OP;
-          LP_ALUOP_OR:   octrl = `RISCV_ALU_OR_OP;
-          LP_ALUOP_AND:  octrl = `RISCV_ALU_AND_OP;
-          default:       octrl = `RISCV_ALU_NOP_OP;
+          LP_ALUOP_ADD:  oalu_ctrl = (ifunct7_b5 & iop_b5) ? `RISCV_ALU_SUB_OP : `RISCV_ALU_ADD_OP; // R type sub
+          LP_ALUOP_SL:   oalu_ctrl = `RISCV_ALU_SL_OP;
+          LP_ALUOP_SLT:  oalu_ctrl = `RISCV_ALU_SLT_OP;
+          LP_ALUOP_SLTU: oalu_ctrl = `RISCV_ALU_SLTU_OP;
+          LP_ALUOP_XOR:  oalu_ctrl = `RISCV_ALU_XOR_OP;
+          LP_ALUOP_SR:   oalu_ctrl = ifunct7_b5 ? `RISCV_ALU_SRA_OP : `RISCV_ALU_SR_OP;
+          LP_ALUOP_OR:   oalu_ctrl = `RISCV_ALU_OR_OP;
+          LP_ALUOP_AND:  oalu_ctrl = `RISCV_ALU_AND_OP;
+          default:       oalu_ctrl = `RISCV_ALU_NOP_OP;
         endcase
       end
     endcase
