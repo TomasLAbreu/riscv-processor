@@ -26,14 +26,14 @@ top #(
 	.MP_DATA_WIDTH (32),
 	.MP_ADDR_WIDTH (5)
 ) inst_top (
-	.iclk         (clk),
-	.irst         (reset),
-	.oinstr       (InstrF),
-	.opc          (PCF),
-	.odmem_addr 			  (DataAdr),
-	.odmem_wr_en       (MemWrite),
-	.odmem_wr_data     (WriteData),
-	.odmem_rd_data     (ReadData)
+	.iclk          (clk),
+	.irst          (reset),
+	.oinstr        (InstrF),
+	.opc           (PCF),
+	.odmem_addr    (DataAdr),
+	.odmem_wr_en   (MemWrite),
+	.odmem_wr_data (WriteData),
+	.odmem_rd_data (ReadData)
 );
 
 initial begin

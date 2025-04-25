@@ -5,10 +5,10 @@ module riscv_dp_loaddec
   parameter MP_DATA_WIDTH = 32
 )
 (
-  input  wire [MP_DATA_WIDTH-1 : 0] idata,
-  input  wire [2:0]                 ifunct3,
   input  wire [1:0]                 iop,
+  input  wire [2:0]                 ifunct3,
 
+  input  wire [MP_DATA_WIDTH-1 : 0] idata,
   output wire [MP_DATA_WIDTH-1 : 0] odata_dec
 );
 //------------------------------------------------------------------------------

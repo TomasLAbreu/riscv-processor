@@ -19,8 +19,8 @@ module riscv_ctrl (
   output wire       oresult_srcb0,
 
   output reg        odmem_wr_en,
-  output reg        oreg_write_1d,
-  output reg        oreg_write,
+  output reg        ord_wr_en_2d,
+  output reg        ord_wr_en_1d,
   output wire       opc_src,
   output reg        opc_result_src,
   output wire [2:0] oimm_src
@@ -31,7 +31,7 @@ module riscv_ctrl (
   // ============================================================================
   // pipeline Decode - Execute
   // ============================================================================
-  wire        wreg_write_nxt;
+  wire        wrd_wr_en_nxt;
   wire  [2:0] wresult_src_nxt;
   wire        wdmem_wr_en_nxt;
   wire  [3:0] walu_ctrl_nxt;
@@ -40,7 +40,7 @@ module riscv_ctrl (
 
   reg [6:0] rop_e;
   reg [2:0] rfunct3;
-  reg       rreg_write;
+  reg       rrd_wr_en;
   reg [2:0] rresult_src;
   reg       rdmem_wr_en;
 
@@ -57,7 +57,7 @@ module riscv_ctrl (
     if (irst || iflush_e) begin
       rop_e          <= {7{1'b0}};
       rfunct3        <= {3{1'b0}};
-      rreg_write     <= 1'b0;
+      rrd_wr_en     <= 1'b0;
       rresult_src    <= {3{1'b0}};
       rdmem_wr_en    <= 1'b0;
       oalu_ctrl      <= {4{1'b0}};
@@ -66,7 +66,7 @@ module riscv_ctrl (
     end else begin
       rop_e          <= iop;
       rfunct3        <= ifunct3;
-      rreg_write     <= wreg_write_nxt;
+      rrd_wr_en     <= wrd_wr_en_nxt;
       rresult_src    <= wresult_src_nxt;
       rdmem_wr_en    <= wdmem_wr_en_nxt;
       oalu_ctrl      <= walu_ctrl_nxt;
@@ -77,11 +77,11 @@ module riscv_ctrl (
 
   always @(posedge iclk) begin : sproc_pipeline_exec_mem
     if (irst) begin
-      oreg_write     <= 1'b0;
+      ord_wr_en_1d     <= 1'b0;
       odmem_wr_en    <= 1'b0;
       rresult_src_1d <= {3{1'b0}};
     end else begin
-      oreg_write     <= rreg_write;
+      ord_wr_en_1d     <= rrd_wr_en;
       odmem_wr_en    <= rdmem_wr_en;
       rresult_src_1d <= rresult_src;
     end
@@ -89,10 +89,10 @@ module riscv_ctrl (
 
   always @(posedge iclk) begin : sproc_pipeline_mem_wr
     if (irst) begin
-      oreg_write_1d  <= 1'b0;
+      ord_wr_en_2d  <= 1'b0;
       oresult_src_2d <= {3{1'b0}};
     end else begin
-      oreg_write_1d  <= oreg_write;
+      ord_wr_en_2d  <= ord_wr_en_1d;
       oresult_src_2d <= rresult_src_1d;
     end
   end
@@ -107,7 +107,7 @@ module riscv_ctrl (
     .oresult_src    (wresult_src_nxt),
     .odmem_wr_en    (wdmem_wr_en_nxt),
     .oalu_src       (walu_src_nxt),
-    .oreg_wr        (wreg_write_nxt),
+    .ord_wr_en      (wrd_wr_en_nxt),
     .opc_result_src (wpc_result_src_nxt),
     .oimm_src       (oimm_src),
     .oalu_op        (walu_op)

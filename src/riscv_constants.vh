@@ -1,7 +1,7 @@
 `ifndef __RISCV_CONSTANTS_VH__
 `define __RISCV_CONSTANTS_VH__
 
-`define RISCV_ALU_CTRL_WIDTH 4
+// `define RISCV_ALU_CTRL_WIDTH 4
 
 `define RISCV_LITTLE_ENDIAN 0
 `define RISCV_BIG_ENDIAN    1
