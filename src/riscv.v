@@ -1,6 +1,6 @@
 
 // ============================================================================
-// riscv pipeline processor
+// RISCV pipeline processor
 // ============================================================================
 //
 // follows 5 cycle stages through a pipeline:
@@ -18,6 +18,8 @@ module riscv
 #(
   parameter MP_DATA_WIDTH = 32,
   parameter MP_ADDR_WIDTH = 5,
+  parameter MP_PC_WIDTH = 32,
+  parameter MP_REGFILE_ADDR_WIDTH = 5,
   parameter MP_ENDIANESS = `RISCV_BIG_ENDIAN
 )
 (
@@ -28,7 +30,7 @@ module riscv
 
   // Instruction memory
   input  wire [31:0]                iinstr, // Instruction
-  output wire [31:0]                opc,    // Program counter
+  output wire [MP_PC_WIDTH-1:0]     opc,    // Program counter
 
   // Data memory
   output wire [31:0]                odmem_addr,
@@ -49,7 +51,7 @@ module riscv
   wire wctrl_pc_result_src;
   wire [2:0] wctrl_imm_src;
   wire [3:0] wctrl_alu_ctrl;
-  wire wctrl_result_srcb0;
+  wire wctrl_rd_wr_data_srcb0;
 
   // ------ datapath outputs
   wire [4:0] wdp_rs1;
@@ -100,7 +102,7 @@ module riscv
     .ialu_carry     (wdp_alu_carry),
     .ialu_neg       (wdp_alu_neg),
     .oresult_src_2d (wctrl_rd_wr_data_src),
-    .oresult_srcb0  (wctrl_result_srcb0),
+    .oresult_srcb0  (wctrl_rd_wr_data_srcb0),
     .odmem_wr_en    (odmem_wr_en),
     .ord_wr_en_1d   (wctrl_rd_wr_en_1d),
     .ord_wr_en_2d   (wctrl_rd_wr_en_2d),
@@ -110,9 +112,10 @@ module riscv
   );
 
   riscv_dp #(
-    .MP_DATA_WIDTH (MP_DATA_WIDTH),
-    .MP_ADDR_WIDTH (MP_ADDR_WIDTH),
-    .MP_ENDIANESS  (MP_ENDIANESS)
+    .MP_DATA_WIDTH         (MP_DATA_WIDTH),
+    .MP_ADDR_WIDTH         (MP_ADDR_WIDTH),
+    .MP_REGFILE_ADDR_WIDTH (MP_REGFILE_ADDR_WIDTH),
+    .MP_ENDIANESS          (MP_ENDIANESS)
   ) u_datapath (
     .iclk               (iclk),
     .irst               (irst),
@@ -134,9 +137,9 @@ module riscv
     .ors2_1d            (wdp_rs2_1d),
     .ird_wr_en          (wctrl_rd_wr_en_2d),
     .ird_wr_data_src    (wctrl_rd_wr_data_src), // TODO: rename this?
-    .ord                (wdp_rd),
-    .ord_1d             (wdp_rd_1d),
-    .ord_2d             (wdp_rd_2d),
+    .ord_1d             (wdp_rd),
+    .ord_2d             (wdp_rd_1d),
+    .ord_3d             (wdp_rd_2d),
     .ialu_ctrl          (wctrl_alu_ctrl),
     .ialu_src           (wctrl_alu_src),
     .oalu_result        (odmem_addr),
@@ -149,24 +152,26 @@ module riscv
     .odmem_wr_be        (odmem_wr_be)
   );
 
-	riscv_hazard_unit u_hazard_unit (
+	riscv_hazard_unit #(
+    .MP_REGFILE_ADDR_WIDTH (MP_REGFILE_ADDR_WIDTH)
+  ) u_hazard_unit (
     .ipc_src            (wctrl_pc_src),
-    .iresult_srcb0      (wctrl_result_srcb0),
+    .ilw_ongoing        (wctrl_rd_wr_data_srcb0),
     .irs1               (wdp_rs1),
     .irs1_1d            (wdp_rs1_1d),
     .irs2               (wdp_rs2),
     .irs2_1d            (wdp_rs2_1d),
-    .ird                (wdp_rd),
-    .ird_1d             (wdp_rd_1d),
-    .ird_2d             (wdp_rd_2d),
-    .ird_wr_en_1d        (wctrl_rd_wr_en_1d),
-    .ird_wr_en_2d         (wctrl_rd_wr_en_2d),
+    .ird_1d             (wdp_rd),
+    .ird_2d             (wdp_rd_1d),
+    .ird_3d             (wdp_rd_2d),
+    .ird_wr_en_1d       (wctrl_rd_wr_en_1d),
+    .ird_wr_en_2d       (wctrl_rd_wr_en_2d),
     .oforward_alu_src_a (whazard_forward_alu_src_a),
     .oforward_alu_src_b (whazard_forward_alu_src_b),
-    .ostall_f          (whazard_stall_if),
-    .ostall_d          (whazard_stall_id),
-    .oflush_d          (whazard_flush_id),
-    .oflush_e          (whazard_flush_ex)
+    .ostall_f           (whazard_stall_if),
+    .ostall_d           (whazard_stall_id),
+    .oflush_d           (whazard_flush_id),
+    .oflush_e           (whazard_flush_ex)
 	);
 
 endmodule
