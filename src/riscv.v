@@ -16,17 +16,17 @@
 module riscv
 //------------------------------------------------------------------------------
 #(
-  parameter MP_DATA_WIDTH = 32,
-  parameter MP_ADDR_WIDTH = 5,
-  parameter MP_PC_WIDTH = 32,
+  parameter MP_DATA_WIDTH         = 32,
+  parameter MP_ADDR_WIDTH         = 5,
+  parameter MP_PC_WIDTH           = 32,
   parameter MP_REGFILE_ADDR_WIDTH = 5,
-  parameter MP_ENDIANESS = `RISCV_BIG_ENDIAN
+  parameter MP_ENDIANESS          = `RISCV_BIG_ENDIAN
 )
 (
 	//TODO: parameterize instr* and PC
 	//TODO: change rst to rstn
   input wire                        iclk,
-  input wire                        irst,
+  input wire                        irst_n,
 
   // Instruction memory
   input  wire [31:0]                iinstr, // Instruction
@@ -90,7 +90,7 @@ module riscv
 
   riscv_ctrl u_ctrl (
     .iclk           (iclk),
-    .irst           (irst),
+    .irst_n         (irst_n),
     .iflush_e       (whazard_flush_ex),
     .iop            (wop),
     .ifunct3        (wfunct3),
@@ -118,7 +118,7 @@ module riscv
     .MP_ENDIANESS          (MP_ENDIANESS)
   ) u_datapath (
     .iclk               (iclk),
-    .irst               (irst),
+    .irst_n             (irst_n),
     .iforward_alu_src_a (whazard_forward_alu_src_a),
     .iforward_alu_src_b (whazard_forward_alu_src_b),
     .istall_f           (whazard_stall_if),

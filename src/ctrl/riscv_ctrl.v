@@ -1,6 +1,6 @@
 module riscv_ctrl (
   input             iclk,
-  input             irst,
+  input             irst_n,
   input             iflush_e,
 
   input wire  [6:0] iop,
@@ -54,7 +54,7 @@ module riscv_ctrl (
   // ============================================================================
 
   always @(posedge iclk) begin : sproc_pipeline_dec_exec
-    if (irst || iflush_e) begin
+    if ((!irst_n) || iflush_e) begin
       rop_e          <= {7{1'b0}};
       rfunct3        <= {3{1'b0}};
       rrd_wr_en     <= 1'b0;
@@ -76,7 +76,7 @@ module riscv_ctrl (
   end
 
   always @(posedge iclk) begin : sproc_pipeline_exec_mem
-    if (irst) begin
+    if (!irst_n) begin
       ord_wr_en_1d     <= 1'b0;
       odmem_wr_en    <= 1'b0;
       rresult_src_1d <= {3{1'b0}};
@@ -88,7 +88,7 @@ module riscv_ctrl (
   end
 
   always @(posedge iclk) begin : sproc_pipeline_mem_wr
-    if (irst) begin
+    if (!irst_n) begin
       ord_wr_en_2d  <= 1'b0;
       oresult_src_2d <= {3{1'b0}};
     end else begin

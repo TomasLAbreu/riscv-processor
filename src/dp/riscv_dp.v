@@ -2,15 +2,15 @@
 module riscv_dp
 //------------------------------------------------------------------------------
 #(
-  parameter MP_DATA_WIDTH = 32,
-  parameter MP_ADDR_WIDTH = 32,
-  parameter MP_PC_WIDTH = 32,
+  parameter MP_DATA_WIDTH         = 32,
+  parameter MP_ADDR_WIDTH         = 32,
+  parameter MP_PC_WIDTH           = 32,
   parameter MP_REGFILE_ADDR_WIDTH = 5,
-  parameter MP_ENDIANESS = `RISCV_BIG_ENDIAN
+  parameter MP_ENDIANESS          = `RISCV_BIG_ENDIAN
 )
 (
   input wire                              iclk,
-  input wire                              irst,
+  input wire                              irst_n,
 
   // Instruction wires
   input wire  [31:0]                      iinstr_nxt,
@@ -66,8 +66,8 @@ module riscv_dp
   reg [MP_PC_WIDTH-1:0]     rpc;
   wire  [2:0]               wfunct3_1d_nxt;
 
-  wire  [MP_DATA_WIDTH-1:0] wdmem_rd_data_nxt;
-  wire  [MP_PC_WIDTH-1:0]   wpc_nxt;
+  wire [MP_DATA_WIDTH-1:0] wdmem_rd_data_nxt;
+  wire [MP_PC_WIDTH-1:0]   wpc_nxt;
   wire [MP_PC_WIDTH-1:0] wpc_target_nxt;
   wire [MP_PC_WIDTH-1:0] wpc_result_nxt; // result of mux ALUResult and PCTarget
 
@@ -113,8 +113,8 @@ module riscv_dp
   // stage fetch
   //----------------------------------------------------------------------------
 
-  always @(posedge iclk or posedge irst) begin : sproc_pc_reg
-    if (irst) begin
+  always @(posedge iclk or negedge irst_n) begin : sproc_pc_reg
+    if (!irst_n) begin
       rpc <= {MP_PC_WIDTH{1'b0}};
     end else begin
       if (~istall_f) begin
@@ -133,7 +133,7 @@ module riscv_dp
   //----------------------------------------------------------------------------
 
   always @(posedge iclk) begin : sproc_stage_decode
-    if (irst || iflush_d) begin
+    if ((!irst_n) || iflush_d) begin
       rinstr    <= {32{1'b0}};
       rpc_1d    <= {MP_PC_WIDTH{1'b0}};
       rpc_plus4 <= {MP_PC_WIDTH{1'b0}};
@@ -183,7 +183,7 @@ module riscv_dp
   //----------------------------------------------------------------------------
 
   always @(posedge iclk) begin : sproc_stage_execute_noflush
-    if (irst) begin
+    if (!irst_n) begin
       rfunct3_1d <= {3{1'b0}};
     end else begin
       rfunct3_1d <= wfunct3_1d_nxt;
@@ -191,7 +191,7 @@ module riscv_dp
   end
 
   always @(posedge iclk) begin : sproc_stage_execute
-    if (irst || iflush_e) begin
+    if ((!irst_n) || iflush_e) begin
       rrs1_rd_data <= {MP_DATA_WIDTH{1'b0}};
       rrs2_rd_data <= {MP_DATA_WIDTH{1'b0}};
       rpc_2d       <= {MP_PC_WIDTH{1'b0}};
@@ -254,7 +254,7 @@ module riscv_dp
   //----------------------------------------------------------------------------
 
   always @(posedge iclk) begin : sproc_stage_memory
-    if (irst) begin
+    if (!irst_n) begin
       rfunct3_2d    <= {3{1'b0}};
       ralu_result   <= {MP_DATA_WIDTH{1'b0}};
       odmem_wr_data <= {MP_DATA_WIDTH{1'b0}};
@@ -290,7 +290,7 @@ module riscv_dp
   //----------------------------------------------------------------------------
 
   always @(posedge iclk) begin : sproc_stage_writeback
-    if (irst) begin
+    if (!irst_n) begin
       ralu_result_1d <= {MP_DATA_WIDTH{1'b0}};
       rdmem_rd_data  <= {MP_DATA_WIDTH{1'b0}};
       rimm_ext_2d    <= {MP_DATA_WIDTH{1'b0}};

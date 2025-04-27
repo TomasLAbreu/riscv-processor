@@ -4,7 +4,7 @@ module top #(
 )
 (
 	input wire												iclk,
-	input wire												irst,
+	input wire												irst_n,
 
 	output wire	[31:0]								opc,
 	output wire	[31:0]								oinstr,
@@ -21,7 +21,7 @@ module top #(
 		.MP_ADDR_WIDTH (MP_ADDR_WIDTH)
 	) u_riscvp (
 		.iclk          (iclk),
-		.irst          (irst),
+		.irst_n        (irst_n),
 		.iinstr        (oinstr),
 		.opc           (opc),
 		.odmem_addr    (odmem_addr),

@@ -27,7 +27,7 @@ top #(
 	.MP_ADDR_WIDTH (5)
 ) inst_top (
 	.iclk          (clk),
-	.irst          (reset),
+	.irst_n        (reset),
 	.oinstr        (InstrF),
 	.opc           (PCF),
 	.odmem_addr    (DataAdr),
@@ -37,10 +37,10 @@ top #(
 );
 
 initial begin
-	reset <= 1;
+	reset <= 0;
 	#(22)
 		;
-	reset <= 0;
+	reset <= 1;
 end
 
 always begin
