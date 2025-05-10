@@ -4,6 +4,10 @@
 # Project directory
 proj_dir = $(PWD)
 
+# https://www.chipverify.com/uvm/uvm-installation
+UVM_INSTALL=$(HOME)
+export UVM_HOME=$(UVM_INSTALL)/uvm-1.2
+
 # HW design parameters
 hw_design_name=bd_wrapper
 BOARD ?= ZCU104 # cannot be changed

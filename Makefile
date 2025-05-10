@@ -21,10 +21,11 @@ rtl_src = -f $(rtl_dir)/riscv.lst
 rtl_src+= --include $(rtl_dir)
 # rtl_src+= --define my_macro=1
 
-sim_src = ${sim_dir}/*.sv
-
+# sim_src = ${sim_dir}/*.sv --include $(rtl_dir) --include $(UVM_HOME)
+sim_src = ${sim_dir}/test_top.sv --include $(UVM_HOME)/src
+# $(UVM_HOME)/src/uvm.sv
 #-------------------------------------------------------------------------------
-sim_top_tb  = tb
+sim_top_tb  = test_top
 sim_snapshot= ${sim_top_tb}_snapshot
 sim_wcfg 		= ${sim_snapshot}.wcfg
 sim_wdb 		= ${sim_snapshot}.wdb
@@ -39,16 +40,22 @@ sim_log  = sim.log
 
 run: comp sim ## Compile design and Run simulation
 
+# 	$(XVLOG) ${rtl_src} | tee $(comp_log); \
+# 	$(XVLOG) --sv $(defines) ${sim_src} | tee -a $(comp_log)
 comp: ## Compile design
 	@$(call print_rule, "Compiling source files")
 	@mkdir -p $(work_dir)
 	cd $(work_dir); \
-	$(XVLOG) ${rtl_src} | tee $(comp_log); \
-	$(XVLOG) --sv $(defines) ${sim_src} | tee -a $(comp_log)
-	cd $(work_dir); \
-	$(XELAB) -debug all -top ${sim_top_tb} -snapshot ${sim_snapshot} | tee -a $(comp_log)
+	$(XVLOG) ${rtl_src} --sv ${sim_src} | tee $(comp_log)
 	@echo "\n${CYAN}---> Grep through compilation logs:${RST}\n"
 	@$(call ignore_comp_infos, $(work_dir)/$(comp_log)); \
+	if [ $$? -ne 1 ]; then \
+		exit 1; \
+	fi
+	cd $(work_dir); \
+	$(XELAB) -debug all -top ${sim_top_tb} -snapshot ${sim_snapshot} | tee $(elab_log)
+	@echo "\n${CYAN}---> Grep through elaboration logs:${RST}\n"
+	@$(call ignore_comp_infos, $(work_dir)/$(elab_log)); \
 	if [ $$? -ne 1 ]; then \
 		exit 1; \
 	fi
