@@ -1,8 +1,10 @@
 `ifndef __RISCV_CONSTANTS_VH__
 `define __RISCV_CONSTANTS_VH__
 
-// `define RISCV_ALU_CTRL_WIDTH 4
+`define RISCV_DATA_WIDTH  32
+`define RISCV_ADDR_WIDTH  5
 
+// `define RISCV_ALU_CTRL_WIDTH 4
 `define RISCV_LITTLE_ENDIAN 0
 `define RISCV_BIG_ENDIAN    1
 
@@ -18,7 +20,8 @@
 `define RISCV_ALU_SR_OP   4'b1000
 `define RISCV_ALU_SRA_OP  4'b1001
 
-`define RISCV_ALU_NOP_OP  4'bxxxx
+// `define RISCV_ALU_NOP_OP  4'bxxxx
+`define RISCV_ALU_NOP_OP  4'b1111
 
 `endif // __RISCV_CONSTANTS_VH__
 

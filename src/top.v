@@ -35,7 +35,7 @@ module top #(
 		.MP_DATA_WIDTH (MP_DATA_WIDTH),
 		.MP_ADDR_WIDTH (8)
 	) u_imem (
-		.iaddr  (opc),
+		.iaddr  (opc),// TODO: check this o
 		.ordata (oinstr)
 	);
 

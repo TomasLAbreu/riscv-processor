@@ -174,7 +174,7 @@ module riscv_dp
       LP_B_TYPE: wimm_ext = {{MP_DATA_WIDTH-12{rinstr[31]}}, rinstr[7], rinstr[30:25], rinstr[11:8], 1'b0};
       LP_J_TYPE: wimm_ext = {{MP_DATA_WIDTH-20{rinstr[31]}}, rinstr[19:12], rinstr[20], rinstr[30:21], 1'b0};
       LP_U_TYPE: wimm_ext = {rinstr[31:12], {MP_DATA_WIDTH-20{1'b0}}};
-      default: wimm_ext = {MP_DATA_WIDTH{1'bx}}; // TODO: check dontcare
+      default: wimm_ext = {MP_DATA_WIDTH{1'b0}};
     endcase
   end
 
@@ -315,7 +315,7 @@ module riscv_dp
       3'b010: wrd_wr_data = rpc_plus4_3d;
       3'b101: wrd_wr_data = rpc_result_1d;
       3'b011: wrd_wr_data = rimm_ext_2d;
-      default: wrd_wr_data = {32{1'bx}}; // TODO: usage of dontcare
+      default: wrd_wr_data = {32{1'b0}};
     endcase
   end
 

@@ -23,14 +23,12 @@ module riscv
   parameter MP_ENDIANESS          = `RISCV_BIG_ENDIAN
 )
 (
-	//TODO: parameterize instr* and PC
-	//TODO: change rst to rstn
   input wire                        iclk,
   input wire                        irst_n,
-
+  // TODO: add interrupt request? stalls everything?
   // Instruction memory
-  input  wire [31:0]                iinstr, // Instruction
-  output wire [MP_PC_WIDTH-1:0]     opc,    // Program counter
+  input  wire [31:0]                iinstr,
+  output wire [MP_PC_WIDTH-1:0]     opc,
 
   // Data memory
   output wire [31:0]                odmem_addr,
@@ -58,11 +56,11 @@ module riscv
   wire [4:0] wdp_rs2;
   wire [4:0] wdp_rs1_1d;
   wire [4:0] wdp_rs2_1d;
-  wire [4:0] wdp_rd;
+  wire [4:0] wdp_rd_1d;
   wire wctrl_pc_src;
 
-  wire [4:0] wdp_rd_1d;
   wire [4:0] wdp_rd_2d;
+  wire [4:0] wdp_rd_3d;
 
   wire [31:0] wdp_instr;
 
@@ -75,10 +73,10 @@ module riscv
   // ------ hazard unit flags
   wire [1:0] whazard_forward_alu_src_a;
   wire [1:0] whazard_forward_alu_src_b;
-  wire whazard_stall_if;
-  wire whazard_stall_id;
-  wire whazard_flush_id;
-  wire whazard_flush_ex;
+  wire whazard_stall_f;
+  wire whazard_stall_d;
+  wire whazard_flush_d;
+  wire whazard_flush_e;
 
   wire [6:0] wop;
   wire [2:0] wfunct3;
@@ -89,26 +87,26 @@ module riscv
   assign wfunct7b5 = wdp_instr[30];
 
   riscv_ctrl u_ctrl (
-    .iclk           (iclk),
-    .irst_n         (irst_n),
-    .iflush_e       (whazard_flush_ex),
-    .iop            (wop),
-    .ifunct3        (wfunct3),
-    .ifunct7b5      (wfunct7b5),
-    .oalu_src       (wctrl_alu_src),
-    .oalu_ctrl      (wctrl_alu_ctrl),
-    .ialu_zero      (wdp_alu_zero),
-    .ialu_ovfl      (wdp_alu_ovfl),
-    .ialu_carry     (wdp_alu_carry),
-    .ialu_neg       (wdp_alu_neg),
-    .oresult_src_2d (wctrl_rd_wr_data_src),
-    .oresult_srcb0  (wctrl_rd_wr_data_srcb0),
-    .odmem_wr_en    (odmem_wr_en),
-    .ord_wr_en_1d   (wctrl_rd_wr_en_1d),
-    .ord_wr_en_2d   (wctrl_rd_wr_en_2d),
-    .opc_src        (wctrl_pc_src),
-    .opc_result_src (wctrl_pc_result_src),
-    .oimm_src       (wctrl_imm_src)
+    .iclk               (iclk),
+    .irst_n             (irst_n),
+    .iflush_e           (whazard_flush_e),
+    .iop                (wop),
+    .ifunct3            (wfunct3),
+    .ifunct7b5          (wfunct7b5),
+    .oalu_src           (wctrl_alu_src),
+    .oalu_ctrl          (wctrl_alu_ctrl),
+    .ialu_zero          (wdp_alu_zero),
+    .ialu_ovfl          (wdp_alu_ovfl),
+    .ialu_carry         (wdp_alu_carry),
+    .ialu_neg           (wdp_alu_neg),
+    .ord_wr_data_src_2d (wctrl_rd_wr_data_src),
+    .ord_wr_data_srcb0  (wctrl_rd_wr_data_srcb0),
+    .odmem_wr_en_1d     (odmem_wr_en),
+    .ord_wr_en_1d       (wctrl_rd_wr_en_1d),
+    .ord_wr_en_2d       (wctrl_rd_wr_en_2d),
+    .opc_src            (wctrl_pc_src),
+    .opc_result_src     (wctrl_pc_result_src),
+    .oimm_src           (wctrl_imm_src)
   );
 
   riscv_dp #(
@@ -121,10 +119,10 @@ module riscv
     .irst_n             (irst_n),
     .iforward_alu_src_a (whazard_forward_alu_src_a),
     .iforward_alu_src_b (whazard_forward_alu_src_b),
-    .istall_f           (whazard_stall_if),
-    .istall_d           (whazard_stall_id),
-    .iflush_d           (whazard_flush_id),
-    .iflush_e           (whazard_flush_ex),
+    .istall_f           (whazard_stall_f),
+    .istall_d           (whazard_stall_d),
+    .iflush_d           (whazard_flush_d),
+    .iflush_e           (whazard_flush_e),
     .iinstr_nxt         (iinstr),
     .oinstr             (wdp_instr),
     .ipc_src            (wctrl_pc_src),
@@ -136,10 +134,10 @@ module riscv
     .ors2               (wdp_rs2),
     .ors2_1d            (wdp_rs2_1d),
     .ird_wr_en          (wctrl_rd_wr_en_2d),
-    .ird_wr_data_src    (wctrl_rd_wr_data_src), // TODO: rename this?
-    .ord_1d             (wdp_rd),
-    .ord_2d             (wdp_rd_1d),
-    .ord_3d             (wdp_rd_2d),
+    .ird_wr_data_src    (wctrl_rd_wr_data_src),
+    .ord_1d             (wdp_rd_1d),
+    .ord_2d             (wdp_rd_2d),
+    .ord_3d             (wdp_rd_3d),
     .ialu_ctrl          (wctrl_alu_ctrl),
     .ialu_src           (wctrl_alu_src),
     .oalu_result        (odmem_addr),
@@ -161,17 +159,17 @@ module riscv
     .irs1_1d            (wdp_rs1_1d),
     .irs2               (wdp_rs2),
     .irs2_1d            (wdp_rs2_1d),
-    .ird_1d             (wdp_rd),
-    .ird_2d             (wdp_rd_1d),
-    .ird_3d             (wdp_rd_2d),
+    .ird_1d             (wdp_rd_1d),
+    .ird_2d             (wdp_rd_2d),
+    .ird_3d             (wdp_rd_3d),
     .ird_wr_en_1d       (wctrl_rd_wr_en_1d),
     .ird_wr_en_2d       (wctrl_rd_wr_en_2d),
     .oforward_alu_src_a (whazard_forward_alu_src_a),
     .oforward_alu_src_b (whazard_forward_alu_src_b),
-    .ostall_f           (whazard_stall_if),
-    .ostall_d           (whazard_stall_id),
-    .oflush_d           (whazard_flush_id),
-    .oflush_e           (whazard_flush_ex)
+    .ostall_f           (whazard_stall_f),
+    .ostall_d           (whazard_stall_d),
+    .oflush_d           (whazard_flush_d),
+    .oflush_e           (whazard_flush_e)
 	);
 
 endmodule
